@@ -1,5 +1,6 @@
 import os
 import json
+import pandas as pd
 from collections import OrderedDict
 from core.image_handler import *
 
@@ -15,7 +16,7 @@ def masking_save(image_pack, result, path):
     cv2.imwrite(f'data/masking/{filename}.jpg', img)
 
 
-def make_json(masking_result, easy_all_result, img_path, finger_count):
+def make_json_masking(masking_result, easy_all_result, img_path, finger_count):
     finish = OrderedDict()
     finish['count'] = len(masking_result) - finger_count
 

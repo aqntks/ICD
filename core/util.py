@@ -22,7 +22,7 @@ def compute_intersect_ratio(rect1, rect2):
     width = right_down_x - left_up_x
     height = right_down_y - left_up_y
 
-    original = (y2 - y1) * (x2 - x1)
+    original = max((y2 - y1) * (x2 - x1), (y4 - y3) * (x4 - x3))
     intersect = width * height
 
     ratio = int(intersect / original * 100)
@@ -68,12 +68,31 @@ def unsorted_remove_intersect_box(lists):
                     del lists[y]
                     y -= 1
                 else:
-                    del list[i]
+                    del lists[i]
                     i -= 1
 
     result = []
     for l in lists:
         result.append(l[0])
+    return result
+
+
+# 겹친 상자 제거 (50% 이상) - 정렬 하기 힘든 경우 - pytorch의 det인 경우
+def unsorted_remove_intersect_box_det(det):
+    for i in range(0, len(det)-1):
+        if i > len(det)-2: break
+        for y in range(i+1, len(det)):
+            if y > len(det)-1: break
+            if compute_intersect_ratio(det[i][0], det[y][0]) > 50:
+                if det[i][1] > det[y][1]:
+                    del det[y]
+                    y -= 1
+                else:
+                    del det[i]
+
+    result = []
+    for *rect, conf, cls in det:
+        result.append((rect, conf, cls))
     return result
 
 
@@ -115,15 +134,15 @@ def sort_v2(mrzStr):
 
 # 라인단위 정렬
 def line_by_line_sort(mrzStr):
-    middleChar, mrzFirst, mrzSecond = mrzStr[0], [], []
+    middleChar, mrzFirst, mrzSecond = mrzStr[0][0][0], [], []
     for c in mrzStr:
-        if c[0][1] < middleChar[0][3]:
+        if c[0][0][0][1] < middleChar[0][3]:
             mrzFirst.append(c)
         else:
             mrzSecond.append(c)
 
-    mrzFirst.sort(key=lambda x: x[0][0])
-    mrzSecond.sort(key=lambda x: x[0][0])
+    mrzFirst.sort(key=lambda x: x[0][0][0][0])
+    mrzSecond.sort(key=lambda x: x[0][0][0][0])
 
     return mrzFirst, mrzSecond
 
@@ -172,6 +191,7 @@ def nonCheck(item, obj):
     return obj[item] if item in obj else ('0', 0)
 
 
+# 검출 상자 그리기
 def plot_one_box(x, im, color=(128, 128, 128), label=None, line_thickness=3):
     # Plots one bounding box on image 'im' using OpenCV
     assert im.data.contiguous, 'Image not contiguous. Apply np.ascontiguousarray(im) to plot_on_box() input image.'
@@ -197,6 +217,7 @@ def showImg(det, names, im0s, colors, real):
     cv2.imshow("result", cv2.resize(appendImg, (1280, 400)))
 
 
+# 디렉토리 탐색
 def watchDir(path):
     output = os.listdir(path)
     filelist = []
@@ -234,3 +255,16 @@ def distance_two_points(p1, p2):
     l2 = p2Y - p1Y
     return math.sqrt(math.pow(l1, 2) + math.pow(l2, 2))
 
+
+# 범위 상자 안에 있는 값 검출
+def rect_in_value(det, item, names, charMode=True):
+    result, resultDic, item_rect = '', {}, item
+    for *rect, conf, cls in det:
+        if charMode and len(names[int(cls)]) != 1: continue  # 클래스명이 한글자가 아니면 지나감
+        if (rect[0][0][0] > item_rect[0][0][0]) and (rect[0][0][1] > item_rect[0][0][1]) and (rect[0][0][2] < item_rect[0][0][2]) and (
+                rect[0][0][3] < item_rect[0][0][3]):
+            resultDic[rect[0][0][0]] = names[int(cls)]
+    for d in sorted(resultDic):
+        result += resultDic[d]
+
+    return result

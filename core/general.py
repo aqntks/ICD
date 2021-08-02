@@ -129,7 +129,7 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
         output[xi] = x[i]
         if (time.time() - t) > time_limit:
             print(f'WARNING: NMS time limit {time_limit}s exceeded')
-            break  # time limit exceeded
+            break  # torchvision.ops.nms
 
     return output
 

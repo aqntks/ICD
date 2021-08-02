@@ -3,18 +3,23 @@ import numpy as np
 
 
 class ImagePack:
-    def __init__(self, path, img_size=640, stride=32):
-        # gif 면 첫 프레임만 따옴
-        if str(path).lower().endswith('.gif'):
-            gif = cv2.VideoCapture(path)
-            ret, frame = gif.read()
-            if ret:
-                self.o_img = frame
+    def __init__(self, path, img_size=640, stride=32, byteMode=False):
+        if byteMode:  # 이미지 바이트 상태로 들어온 경우
+            img = np.array(path)
+            img = img[:, :, ::-1].copy()
+            self.o_img = img
         else:
-            # 윈도우 이미지 로드용
-            win_load = np.fromfile(path, np.uint8)
-            win_img = cv2.imdecode(win_load, cv2.IMREAD_COLOR)
-            self.o_img = win_img
+            # gif 면 첫 프레임만 따옴
+            if str(path).lower().endswith('.gif'):
+                gif = cv2.VideoCapture(path)
+                ret, frame = gif.read()
+                if ret:
+                    self.o_img = frame
+            else:
+                # 윈도우 이미지 로드용
+                win_load = np.fromfile(path, np.uint8)
+                win_img = cv2.imdecode(win_load, cv2.IMREAD_COLOR)
+                self.o_img = win_img
 
         # self.o_img = cv2.imread(path)  # 원본
         assert self.o_img is not None, '이미지를 찾을 수 없습니다 ' + path
@@ -39,11 +44,31 @@ class ImagePack:
         img_crop = im0s[y1:y2, x1:x2]
         return img_crop
 
+    def setCrop(self, rect):
+        self.n_img = self.crop((rect[0][0][0], rect[0][0][1], rect[0][0][2], rect[0][0][3]), self.n_img)
+        self.t_img = self.img2pyt(self.n_img)
+
+        return self.t_img, self.n_img
+
     def setImg(self, img):
         self.n_img = img
         self.t_img = self.img2pyt(self.n_img)
 
     def getImg(self):
+        return self.t_img, self.n_img
+
+    def passportCrop(self, mrz):
+        x1, y1, x2, y2 = mrz
+        mrzHeight = y2 - y1
+
+        cropX1 = x1 - mrzHeight if (x1 - mrzHeight) > 0 else 0
+        cropX2 = x2 + mrzHeight if (x2 + mrzHeight) < self.n_img.shape[1] else self.n_img.shape[1]
+        cropY1 = y1 - mrzHeight * 3 if (y1 - mrzHeight * 3) > 0 else 0
+        cropY2 = y2 + mrzHeight if (y2 + mrzHeight) < self.n_img.shape[0] else self.n_img.shape[0]
+
+        self.n_img = self.crop((cropX1, cropY1, cropX2, cropY2), self.n_img)
+        self.t_img = self.img2pyt(self.n_img)
+
         return self.t_img, self.n_img
 
     def setYCrop(self):
