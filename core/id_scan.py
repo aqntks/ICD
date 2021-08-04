@@ -77,8 +77,8 @@ def passport_classification(det, names):
 
 # 주민등록증 검출
 def juminScan(det, names):
-    name_conf, regnum_conf, issueDate_conf = 0, 0, 0
-    nameRect, regnumRect, issueDateRect = None, None, None
+    name_conf, regnum_conf, issueDate_conf, bracket_conf = 0, 0, 0, 0
+    nameRect, regnumRect, issueDateRect, bracketRect = None, None, None, None
     regnum, issueDate = "", ""
 
     for *rect, conf, cls in det:
@@ -99,6 +99,16 @@ def juminScan(det, names):
         regnum = rect_in_value(det, regnumRect, names)
     if issueDateRect is not None:
         issueDate = rect_in_value(det, issueDateRect, names)
+
+    for *rect, conf, cls in det:
+        if rect[0][0][0] > nameRect[0][0][0] and rect[0][0][1] > nameRect[0][0][1] and rect[0][0][2] < nameRect[0][0][2] and rect[0][0][3] < nameRect[0][0][3]:
+            if names[int(cls)] == '(':
+                if conf > bracket_conf:
+                    bracket_conf = conf
+                    bracketRect = rect
+
+    if bracketRect:
+        nameRect[0][0][3] = bracketRect[0][0][1]
 
     return Jumin(nameRect, regnum, issueDate)
 
@@ -490,12 +500,15 @@ def pt_detect(path, device, models, byteMode=False):
         result = None
 
     if (cla == 'jumin' or cla == 'driver' or cla == 'welfare') and result is not None:
-        model, stride, img_size, names = model_setting(hangul_weights, half, hangul_option[0])
-        image_pack.reset(img_size, stride)
-        img, im0s = image_pack.setCrop(result.nameRect)
-        det = detecting(model, img, im0s, device, img_size, half, hangul_option[1:])
-        name = hangulScan(det, names)
-        result.setName(name)
+        if result.nameRect is None:
+            result.setName('')
+        else:
+            model, stride, img_size, names = model_setting(hangul_weights, half, hangul_option[0])
+            image_pack.reset(img_size, stride)
+            img, im0s = image_pack.setCrop(result.nameRect)
+            det = detecting(model, img, im0s, device, img_size, half, hangul_option[1:])
+            name = hangulScan(det, names)
+            result.setName(name)
 
     return result
 

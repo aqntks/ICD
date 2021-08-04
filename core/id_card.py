@@ -1,5 +1,6 @@
 import pandas as pd
-
+import numpy as np
+from collections import OrderedDict
 
 # Jumin, Driver, Welfare, Alien -> Id 상속
 class Id:
@@ -25,9 +26,22 @@ class Jumin(Id):
     def __init__(self, nameRect, regnum, issueDate):
         super().__init__(nameRect, regnum, issueDate)
 
-    def mkDataFrame(self):
-        series = pd.Series({"name": self.name, "regnum": self.regnum, "issuedate": self.issueDate})
+    def mkDataFrameJson(self):
+        series = pd.Series({"IDENTYPE": 'JUMIN', "NAME": self.name, "JUMIN": self.regnum, "ISSUE_DATE": self.issueDate,
+                            "ADDR1": '-', "ADDR2": '-'})
         return pd.DataFrame(series)
+
+    def mkDataFrameDict(self):
+        if len(self.name) > 3:
+            self.name = self.name[0:3]
+        result = OrderedDict()
+        result['ocr_result'] = {"IDENTYPE": 'JUMIN', "NAME": self.name, "JUMIN": self.regnum, "ISSUE_DATE": self.issueDate,
+                            "ADDR1": '-', "ADDR2": '-', "SAVE_FILE_NAME": '-'}
+        result['err_code'] = 10
+        return result
+
+    def mkDataFrame(self, img):
+        return pd.DataFrame({"FileName": [img], "NAME": [self.name], "JUMIN": [self.regnum], "ISSUE_DATE": [self.issueDate]})
 
 
 class Driver(Id):
@@ -63,11 +77,31 @@ class Driver(Id):
         if local == 'local_ulsan': return '울산'
         return ''
 
-    def mkDataFrame(self):
+    def mkDataFrameJson(self):
         series = \
-            pd.Series({"name": self.name, "regnum": self.regnum, "issuedate": self.issueDate,
-                       "local": self.local, "licensenum": self.licensenum, "encnum": self.encnum})
+            pd.Series({"IDENTYPE": 'DRIVER', "NAME": self.name, "JUMIN": self.regnum,
+                       "LOCAL": self.local, "DRIVER_NO": self.licensenum,
+                       "PRIVATE_CODE": self.encnum, "ISSUE_DATE": self.issueDate,
+                       "DRIVER_TYPE": '-', "ADDR1": '-', "ADDR2": '-', "ADDR3": '-', "TEST_PERIOD": '-'})
         return pd.DataFrame(series)
+
+    def mkDataFrameDict(self):
+        result = OrderedDict()
+        result['ocr_result'] = {"IDENTYPE": 'DRIVER', "NAME": self.name, "JUMIN": self.regnum,
+                       "LOCAL": self.local, "DRIVER_NO": self.local + self.licensenum,
+                       "PRIVATE_CODE": self.encnum, "ISSUE_DATE": self.issueDate,
+                       "DRIVER_TYPE": '-', "ADDR1": '-', "ADDR2": '-', "ADDR3": '-',
+                       "TEST_PERIOD": '-', "SAVE_FILE_NAME": '-'}
+        result['err_code'] = 10
+        return result
+
+    def mkSeries(self):
+        return pd.Series(self.name, self.regnum, self.local, self.licensenum, self.encnum, self.issueDate)
+
+    def mkDataFrame(self, img):
+        return pd.DataFrame({"FileName": [img], "NAME": [self.name], "JUMIN": [self.regnum], "LOCAL": [self.local],
+                             "DRIVER_NO": [self.licensenum], "PRIVATE_CODE": [self.encnum],
+                             "ISSUE_DATE": [self.issueDate]})
 
 
 class Welfare(Id):
@@ -83,11 +117,15 @@ class Welfare(Id):
             print('expire: ' + self.expire)
         print("---------------------------------------\n")
 
-    def mkDataFrame(self):
+    def mkDataFrameJson(self):
         series = \
             pd.Series({"name": self.name, "regnum": self.regnum, "issuedate": self.issueDate,
                        "gradetype": self.gradetype, "expire": self.expire})
         return pd.DataFrame(series)
+
+    def mkDataFrame(self, img):
+        return pd.DataFrame({"FileName": [img], "NAME": [self.name], "REGNUM": [self.regnum], "ISSUEDATE": [self.issueDate],
+                       "GRADETYPE": [self.gradetype], "EXPIRE": [self.expire]})
 
 
 class Alien(Id):
@@ -104,11 +142,15 @@ class Alien(Id):
         print('sex: ' + self.sex)
         print("---------------------------------------\n")
 
-    def mkDataFrame(self):
+    def mkDataFrameJson(self):
         series = \
             pd.Series({"name": self.name, "regnum": self.regnum, "issuedate": self.issueDate,
                        "nationality": self.nationality, "visatype": self.visatype, "sex": self.sex})
         return pd.DataFrame(series)
+
+    def mkDataFrame(self, img):
+        return pd.DataFrame({"FileName": [img], "NAME": [self.name], "REGNUM": [self.regnum], "ISSUEDATE": [self.issueDate],
+                       "NATIONALITY": [self.nationality], "VISATYPE": [self.visatype], "SEX": [self.sex]})
 
 
 class Passport:
@@ -142,10 +184,16 @@ class Passport:
         print('Date of expiry  :', self.expiry)
         print("---------------------------------------\n")
 
-    def mkDataFrame(self):
+    def mkDataFrameJson(self):
         series = \
             pd.Series({"passportType": self.passportType, "issuingCounty": self.issuingCounty, "passportNo": self.passportNo,
                        "sur": self.sur, "given": self.given, "nationality": self.nationality,
                        "birth": self.birth, "sex": self.sex, "expiry": self.expiry})
 
         return pd.DataFrame(series)
+
+    def mkDataFrame(self, img):
+        return pd.DataFrame({"FileName": [img], "passportType": [self.passportType], "issuingCounty": [self.issuingCounty],
+                             "passportNo": [self.passportNo],
+                       "sur": [self.sur], "given": [self.given], "nationality": [self.nationality],
+                       "birth": [self.birth], "sex": [self.sex], "expiry": [self.expiry]})
