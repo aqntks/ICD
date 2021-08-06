@@ -41,6 +41,8 @@ class Jumin(Id):
         return result
 
     def mkDataFrame(self, img):
+        if len(self.name) > 3:
+            self.name = self.name[0:3]
         return pd.DataFrame({"FileName": [img], "NAME": [self.name], "JUMIN": [self.regnum], "ISSUE_DATE": [self.issueDate]})
 
 

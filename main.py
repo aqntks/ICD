@@ -12,7 +12,7 @@ from models.experimental import attempt_load
 
 
 def main(arg):
-    gpu = arg.gpu
+    gpu, gray = arg.gpu, arg.gray
     img_formats = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo', 'gif']
 
     # 디바이스 세팅
@@ -69,7 +69,7 @@ def main(arg):
         for img in images:
 
             # pytorch 검출
-            result = pt_detect(img, device, models)
+            result = pt_detect(img, device, models, gray, byteMode=False)
             print(img)
             if result is None:
                 print('검출 실패')
@@ -109,5 +109,6 @@ def main(arg):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', type=int, default=-1)
+    parser.add_argument('--gray', action='store_true')
     opt = parser.parse_args()
     main(opt)

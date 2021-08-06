@@ -3,7 +3,7 @@ import numpy as np
 
 
 class ImagePack:
-    def __init__(self, path, img_size=640, stride=32, byteMode=False):
+    def __init__(self, path, img_size=640, stride=32, byteMode=False, gray=False):
         if byteMode:  # 이미지 바이트 상태로 들어온 경우
             img = np.array(path)
             img = img[:, :, ::-1].copy()
@@ -20,6 +20,17 @@ class ImagePack:
                 win_load = np.fromfile(path, np.uint8)
                 win_img = cv2.imdecode(win_load, cv2.IMREAD_COLOR)
                 self.o_img = win_img
+
+        if gray:
+            # self.o_img[:, :, 0] = 0.299
+            # self.o_img[:, :, 1] = 0.587
+            # self.o_img[:, :, 2] = 0.114
+            # cv2.imwrite('test.jpg', self.o_img)
+            # np.dot(rgb[..., :3], [0.299, 0.587, 0.114])
+            self.o_img = cv2.cvtColor(self.o_img, cv2.COLOR_BGR2GRAY)
+            self.o_img = cv2.cvtColor(self.o_img, cv2.COLOR_GRAY2BGR)
+            cv2.imwrite('test.jpg', self.o_img)
+
 
         # self.o_img = cv2.imread(path)  # 원본
         assert self.o_img is not None, '이미지를 찾을 수 없습니다 ' + path

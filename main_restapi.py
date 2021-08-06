@@ -6,6 +6,9 @@ import yaml
 import torch
 import argparse
 import numpy as np
+import json
+
+from collections import OrderedDict
 
 from core.id_scan import pt_detect
 from models.experimental import attempt_load
@@ -27,21 +30,23 @@ def predict():
 
     if request.files.get("file_param_1"):
         image_file = request.files["file_param_1"]
-        face_file = request.files["file_param_face"]
+        # face_file = request.files["file_param_face"]
         image_bytes = image_file.read()
 
         img = Image.open(io.BytesIO(image_bytes))
 
-        result = pt_detect(img, device, models, byteMode=True)
+        result = pt_detect(img, device, models, gray=False, byteMode=True)
 
         if result is None:
             result_json = pd.DataFrame().to_json(orient="columns")
             print('검출 실패', '\n---------------------------------------')
         else:
-            df = result.mkDataFrame()
-            df.columns = ['ocr_result']
-            # print(df, '\n---------------------------------------')
-            result_json = df.to_json(orient="columns")
+            # df = result.mkDataFrame()
+            # df.columns = ['ocr_result']
+            # df['err_code'] = 10
+            # # print(df, '\n---------------------------------------')
+            # result_json = df.to_json(orient="columns")
+            result_json = json.dumps(result.mkDataFrameDict(), ensure_ascii=False)
             pprint.pprint(result_json)
 
         return result_json

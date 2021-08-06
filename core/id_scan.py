@@ -100,15 +100,17 @@ def juminScan(det, names):
     if issueDateRect is not None:
         issueDate = rect_in_value(det, issueDateRect, names)
 
-    for *rect, conf, cls in det:
-        if rect[0][0][0] > nameRect[0][0][0] and rect[0][0][1] > nameRect[0][0][1] and rect[0][0][2] < nameRect[0][0][2] and rect[0][0][3] < nameRect[0][0][3]:
-            if names[int(cls)] == '(':
-                if conf > bracket_conf:
-                    bracket_conf = conf
-                    bracketRect = rect
+    if nameRect:
+        for *rect, conf, cls in det:
+            if rect[0][0][0] > nameRect[0][0][0] and rect[0][0][1] > nameRect[0][0][1] \
+                    and rect[0][0][2] < nameRect[0][0][2] and rect[0][0][3] < nameRect[0][0][3]:
+                if names[int(cls)] == '(':
+                    if conf > bracket_conf:
+                        bracket_conf = conf
+                        bracketRect = rect
 
     if bracketRect:
-        nameRect[0][0][3] = bracketRect[0][0][1]
+        nameRect[0][0][2] = bracketRect[0][0][0]
 
     return Jumin(nameRect, regnum, issueDate)
 
@@ -428,7 +430,7 @@ def idScan(det, names):
     return result, detect_mrz, detect_kor
 
 
-def pt_detect(path, device, models, byteMode=False):
+def pt_detect(path, device, models, gray=False, byteMode=False):
     id_cls_weights, jumin_weights, driver_weights, passport_weights, welfare_weights, alien_weights, hangul_weights = models
 
     half = device.type != 'cpu'
@@ -453,7 +455,7 @@ def pt_detect(path, device, models, byteMode=False):
 
     # 분류
     model, stride, img_size, names = model_setting(id_cls_weights, half, id_cls_option[0])
-    image_pack = ImagePack(path, img_size, stride, byteMode)
+    image_pack = ImagePack(path, img_size, stride, byteMode, gray)
     img, im0s = image_pack.getImg()
     det = detecting(model, img, im0s, device, img_size, half, id_cls_option[1:])
     cla = id_classification(det)
@@ -463,6 +465,15 @@ def pt_detect(path, device, models, byteMode=False):
         img, im0s = image_pack.getImg()
         det = detecting(model, img, im0s, device, img_size, half, passport_option[1:])
         cla, mrzRect = passport_classification(det, names)
+    if cla is None:
+        model, stride, img_size, names = model_setting(driver_weights, half, driver_option[0])
+        image_pack.reset(img_size, stride)
+        img, im0s = image_pack.getImg()
+        det = detecting(model, img, im0s, device, img_size, half, driver_option[1:])
+        for *rect, conf, cls in det:
+            if (names[int(cls)] == 'encnum' or names[int(cls)] == 'period') and conf > 0.9:
+                cla = 'driver'
+                break
     if cla is None:
         return None
 
