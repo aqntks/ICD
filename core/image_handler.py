@@ -61,6 +61,22 @@ class ImagePack:
 
         return self.t_img, self.n_img
 
+    def setSizeCrop(self, rect, size):
+        if self.n_img.shape[1] < size:
+            return self.t_img, self.n_img
+
+        w = rect[0][0][2] - rect[0][0][0]
+        x1 = rect[0][0][0]
+        x2 = rect[0][0][2]
+
+        if w < size:
+            x2 = x1 + size
+
+        self.n_img = self.crop((x1, rect[0][0][1], x2, rect[0][0][3]), self.n_img)
+        self.t_img = self.img2pyt(self.n_img)
+
+        return self.t_img, self.n_img
+
     def setImg(self, img):
         self.n_img = img
         self.t_img = self.img2pyt(self.n_img)

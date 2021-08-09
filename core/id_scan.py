@@ -516,7 +516,12 @@ def pt_detect(path, device, models, gray=False, byteMode=False):
         else:
             model, stride, img_size, names = model_setting(hangul_weights, half, hangul_option[0])
             image_pack.reset(img_size, stride)
-            img, im0s = image_pack.setCrop(result.nameRect)
+
+            img, im0s = image_pack.setSizeCrop(result.nameRect, 320)
+
+            name = path.split('/')[-1]
+            cv2.imwrite(f'crop/{name}.jpg', im0s)
+
             det = detecting(model, img, im0s, device, img_size, half, hangul_option[1:])
             name = hangulScan(det, names)
             result.setName(name)
