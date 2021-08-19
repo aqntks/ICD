@@ -1,6 +1,6 @@
 import re
 import yaml
-
+import ctypes as c
 from core.util import *
 from core.id_card import *
 from core.general import *
@@ -430,7 +430,7 @@ def idScan(det, names):
     return result, detect_mrz, detect_kor
 
 
-def pt_detect(path, device, models, gray=False, byteMode=False):
+def pt_detect(path, device, models, gray=False, byteMode=False, perspect=False):
     id_cls_weights, jumin_weights, driver_weights, passport_weights, welfare_weights, alien_weights, hangul_weights = models
 
     half = device.type != 'cpu'
@@ -455,7 +455,7 @@ def pt_detect(path, device, models, gray=False, byteMode=False):
 
     # 분류
     model, stride, img_size, names = model_setting(id_cls_weights, half, id_cls_option[0])
-    image_pack = ImagePack(path, img_size, stride, byteMode, gray)
+    image_pack = ImagePack(path, img_size, stride, byteMode, gray, perspect)
     img, im0s = image_pack.getImg()
     det = detecting(model, img, im0s, device, img_size, half, id_cls_option[1:])
     cla = id_classification(det)
@@ -517,7 +517,12 @@ def pt_detect(path, device, models, gray=False, byteMode=False):
             model, stride, img_size, names = model_setting(hangul_weights, half, hangul_option[0])
             image_pack.reset(img_size, stride)
 
-            img, im0s = image_pack.setSizeCrop(result.nameRect, 320)
+            img, im0s = image_pack.setSizeCrop(result.nameRect, 640)
+            # image_pack.setCrop(result.nameRect)
+            # image_pack.syncImgSizeWithGray()
+            # image_pack.makeSquareWithGray()
+            # image_pack.resize(320)
+            # img, im0s = image_pack.getImg()
 
             name = path.split('/')[-1]
             cv2.imwrite(f'crop/{name}.jpg', im0s)

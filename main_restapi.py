@@ -35,7 +35,7 @@ def predict():
 
         img = Image.open(io.BytesIO(image_bytes))
 
-        result = pt_detect(img, device, models, gray=False, byteMode=True)
+        result = pt_detect(img, device, models, gray=False, byteMode=True, perspect=False)
 
         if result is None:
             result_json = pd.DataFrame().to_json(orient="columns")

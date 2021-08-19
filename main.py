@@ -69,7 +69,7 @@ def main(arg):
         for img in images:
 
             # pytorch 검출
-            result = pt_detect(img, device, models, gray, byteMode=False)
+            result = pt_detect(img, device, models, gray, byteMode=False, perspect=True)
             print(img)
             if result is None:
                 print('검출 실패')

@@ -1,14 +1,16 @@
 import cv2
 import numpy as np
+from core.perspective_transform import perspective
 
 
 class ImagePack:
-    def __init__(self, path, img_size=640, stride=32, byteMode=False, gray=False):
+    def __init__(self, path, img_size=640, stride=32, byteMode=False, gray=False, perspect=False):
         if byteMode:  # 이미지 바이트 상태로 들어온 경우
             img = np.array(path)
             img = img[:, :, ::-1].copy()
             self.o_img = img
         else:
+
             # gif 면 첫 프레임만 따옴
             if str(path).lower().endswith('.gif'):
                 gif = cv2.VideoCapture(path)
@@ -31,10 +33,13 @@ class ImagePack:
             self.o_img = cv2.cvtColor(self.o_img, cv2.COLOR_GRAY2BGR)
             cv2.imwrite('test.jpg', self.o_img)
 
-
         # self.o_img = cv2.imread(path)  # 원본
         assert self.o_img is not None, '이미지를 찾을 수 없습니다 ' + path
-        self.n_img = self.o_img  # 현재 이미지
+
+        if perspect:
+            self.n_img = perspective(self.o_img)
+        else:
+            self.n_img = self.o_img  # 현재 이미지
         self.img_size = img_size
         self.stride = stride
         self.t_img = self.img2pyt(self.n_img)  # 검출용 이미지
@@ -107,6 +112,43 @@ class ImagePack:
 
     def getOImg(self):
         return self.o_img
+
+    def resize(self, size):
+        img = cv2.resize(self.n_img, dsize=(size, size))
+        self.setImg(img)
+
+    def makeSquareWithGray(self):
+        w = self.n_img.shape[1]
+        h = self.n_img.shape[0]
+
+        if w > h:
+            gray = np.zeros((w-h, w, 3), np.uint8)
+            gray[:, :, :] = 178
+            newImg = np.concatenate((self.n_img, gray), axis=0)
+        else:
+            gray = np.zeros((h, h-w, 3), np.uint8)
+            gray[:, :, :] = 178
+            newImg = np.concatenate((self.n_img, gray), axis=1)
+
+        self.setImg(newImg)
+
+    def syncImgSizeWithGray(self):
+        w = self.n_img.shape[1]
+        h = self.n_img.shape[0]
+
+        size = w if w > h else h
+
+        if size < self.img_size:
+            if w > h:
+                gray = np.zeros((h, self.img_size - w, 3), np.uint8)
+                gray[:, :, :] = 178
+                newImg = np.concatenate((self.n_img, gray), axis=1)
+            else:
+                gray = np.zeros((self.img_size - h, w, 3), np.uint8)
+                gray[:, :, :] = 178
+                newImg = np.concatenate((self.n_img, gray), axis=0)
+
+            self.setImg(newImg)
 
 
 def letterbox(img, new_shape=(640, 640), color=(114, 114, 114), auto=True, scaleFill=False, scaleup=True, stride=32):
