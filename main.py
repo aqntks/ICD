@@ -69,7 +69,7 @@ def main(arg):
         for img in images:
 
             # pytorch 검출
-            result = pt_detect(img, device, models, gray, byteMode=False, perspect=True)
+            result = pt_detect(img, device, models, gray, byteMode=False, perspect=False)
             print(img)
             if result is None:
                 print('검출 실패')
@@ -99,11 +99,11 @@ def main(arg):
     print(driver_result_csv)
     driver_result_csv.to_csv('csv/driver_result.csv', index=False, encoding='utf-8-sig')
     print(welfare_result_csv)
-    welfare_result_csv.to_csv('csv/welfare_result.csv', index=False, encoding='utf-8-sig')
-    print(alien_result_csv)
-    alien_result_csv.to_csv('csv/alien_result.csv', index=False, encoding='utf-8-sig')
-    print(passport_result_csv)
-    passport_result_csv.to_csv('csv/passport_result.csv', index=False, encoding='utf-8-sig')
+    # welfare_result_csv.to_csv('csv/welfare_result.csv', index=False, encoding='utf-8-sig')
+    # print(alien_result_csv)
+    # alien_result_csv.to_csv('csv/alien_result.csv', index=False, encoding='utf-8-sig')
+    # print(passport_result_csv)
+    # passport_result_csv.to_csv('csv/passport_result.csv', index=False, encoding='utf-8-sig')
 
 
 if __name__ == "__main__":
