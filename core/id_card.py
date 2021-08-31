@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from collections import OrderedDict
 
+
 # Jumin, Driver, Welfare, Alien -> Id 상속
 class Id:
     def __init__(self, nameRect, regnum, issueDate):
@@ -47,11 +48,12 @@ class Jumin(Id):
 
 
 class Driver(Id):
-    def __init__(self, nameRect, regnum, issueDate, local, licensenum, encnum):
+    def __init__(self, nameRect, regnum, issueDate, local, licensenum, encnum, encnumRect):
         super().__init__(nameRect, regnum, issueDate)
         self.local = self.localRename(local)
         self.licensenum = licensenum
         self.encnum = encnum
+        self.encnumRect = encnumRect
 
     def resultPrint(self):
         super().resultPrint()
@@ -105,6 +107,8 @@ class Driver(Id):
                              "DRIVER_NO": [self.licensenum], "PRIVATE_CODE": [self.encnum],
                              "ISSUE_DATE": [self.issueDate]})
 
+    def setEncnum(self, encnum):
+        self.encnum = encnum
 
 class Welfare(Id):
     def __init__(self, nameRect, regnum, issueDate, gradetype, expire):

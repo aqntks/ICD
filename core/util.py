@@ -78,12 +78,12 @@ def unsorted_remove_intersect_box(lists):
 
 
 # 겹친 상자 제거 (50% 이상) - 정렬 하기 힘든 경우 - pytorch의 det인 경우
-def unsorted_remove_intersect_box_det(det):
+def unsorted_remove_intersect_box_det(det, ciou):
     for i in range(0, len(det)-1):
         if i > len(det)-2: break
         for y in range(i+1, len(det)):
             if y > len(det)-1: break
-            if compute_intersect_ratio(det[i][0], det[y][0]) > 50:
+            if compute_intersect_ratio(det[i][0], det[y][0]) > ciou:
                 if det[i][1] > det[y][1]:
                     del det[y]
                     y -= 1

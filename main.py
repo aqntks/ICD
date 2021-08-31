@@ -12,7 +12,7 @@ from models.experimental import attempt_load
 
 
 def main(arg):
-    gpu, gray = arg.gpu, arg.gray
+    gpu, gray, ciou = arg.gpu, arg.gray, arg.ciou
     img_formats = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo', 'gif']
 
     # 디바이스 세팅
@@ -25,9 +25,9 @@ def main(arg):
     # config 로드
     with open('config.yaml', 'r') as f:
         config = yaml.safe_load(f)
-    img_path, cls_weight, jumin_weight, driver_weight, passport_weight, welfare_weight, alien_weight, hangul_weight = \
+    img_path, cls_weight, jumin_weight, driver_weight, passport_weight, welfare_weight, alien_weight, hangul_weight, encnum_weight = \
         config['images'], config['cls-weights'], config['jumin-weights'], config['driver-weights'], \
-        config['passport-weights'], config['welfare-weights'], config['alien-weights'], config['hangul-weights']
+        config['passport-weights'], config['welfare-weights'], config['alien-weights'], config['hangul-weights'], config['encnum-weights']
     f.close()
 
     # 모델 세팅
@@ -38,7 +38,8 @@ def main(arg):
     welfare_model = attempt_load(welfare_weight, map_location=device)
     alien_model = attempt_load(alien_weight, map_location=device)
     hangul_model = attempt_load(hangul_weight, map_location=device)
-    models = (cls_model, jumin_model, driver_model, passport_model, welfare_model, alien_model, hangul_model)
+    encnum_model = attempt_load(encnum_weight, map_location=device)
+    models = (cls_model, jumin_model, driver_model, passport_model, welfare_model, alien_model, hangul_model, encnum_model)
 
     print('----- 모델 로드 완료 -----')
 
@@ -69,7 +70,7 @@ def main(arg):
         for img in images:
 
             # pytorch 검출
-            result = pt_detect(img, device, models, gray, byteMode=False, perspect=False)
+            result = pt_detect(img, device, models, ciou, gray=gray, byteMode=False, perspect=False)
             print(img)
             if result is None:
                 print('검출 실패')
@@ -109,6 +110,7 @@ def main(arg):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', type=int, default=-1)
-    parser.add_argument('--gray', action='store_true')
+    parser.add_argument('--ciou', type=float, default=20)
+    parser.add_argument('--gray', type=bool, default=False)
     opt = parser.parse_args()
     main(opt)

@@ -21,7 +21,7 @@ def model_setting(model, half, imgz):
 
 
 # pt 검출
-def detecting(model, img, im0s, device, img_size, half, option):
+def detecting(model, img, im0s, device, img_size, half, option, ciou=20):
     confidence, iou = option
     if device.type != 'cpu':
         model(torch.zeros(1, 3, img_size, img_size).to(device).type_as(next(model.parameters())))
@@ -46,7 +46,8 @@ def detecting(model, img, im0s, device, img_size, half, option):
     detList = []
     for *rect, conf, cls in detect:
         detList.append((rect, conf, cls))
-    detect = unsorted_remove_intersect_box_det(detList)
+
+    detect = unsorted_remove_intersect_box_det(detList, ciou)
 
     return detect
 
@@ -156,7 +157,7 @@ def driverScan(det, names):
     if encnumRect is not None:
         encnum = rect_in_value(det, encnumRect, names)
 
-    return Driver(nameRect, regnum, issueDate, local, licensenum, encnum)
+    return Driver(nameRect, regnum, issueDate, local, licensenum, encnum, encnumRect)
 
 
 # 복지카드 검출
@@ -323,6 +324,18 @@ def hangulScan(det, names):
     return name
 
 
+# 암호 일련번호 검출
+def encnumScan(det, names):
+    obj, name = [], ''
+    for *rect, conf, cls in det:
+        obj.append((rect, conf, names[int(cls)]))
+        obj.sort(key=lambda x: x[0][0])
+    for s, conf, cls in obj:
+        name += cls
+
+    return name
+
+
 # 지문 검출
 def fingerScan(det, names):
     result, back, finger = [], [], []
@@ -430,8 +443,8 @@ def idScan(det, names):
     return result, detect_mrz, detect_kor
 
 
-def pt_detect(path, device, models, gray=False, byteMode=False, perspect=False):
-    id_cls_weights, jumin_weights, driver_weights, passport_weights, welfare_weights, alien_weights, hangul_weights = models
+def pt_detect(path, device, models, ciou, gray=False, byteMode=False, perspect=False):
+    id_cls_weights, jumin_weights, driver_weights, passport_weights, welfare_weights, alien_weights, hangul_weights, encnum_weights = models
 
     half = device.type != 'cpu'
     # config 로드
@@ -451,11 +464,13 @@ def pt_detect(path, device, models, gray=False, byteMode=False, perspect=False):
     alien_option = (img_size, confidence, iou)
     img_size, confidence, iou = config['hangul-img_size'], config['hangul-confidence'], config['hangul-iou']
     hangul_option = (img_size, confidence, iou)
+    img_size, confidence, iou = config['encnum-img_size'], config['encnum-confidence'], config['encnum-iou']
+    encnum_option = (img_size, confidence, iou)
     f.close()
 
     # 분류
     model, stride, img_size, names = model_setting(id_cls_weights, half, id_cls_option[0])
-    image_pack = ImagePack(path, img_size, stride, byteMode, gray, perspect)
+    image_pack = ImagePack(path, img_size, stride, byteMode=byteMode, gray=gray, perspect=perspect)
     img, im0s = image_pack.getImg()
     det = detecting(model, img, im0s, device, img_size, half, id_cls_option[1:])
     cla = id_classification(det)
@@ -510,6 +525,7 @@ def pt_detect(path, device, models, gray=False, byteMode=False, perspect=False):
     else:
         result = None
 
+    # 이름 검출
     if (cla == 'jumin' or cla == 'driver' or cla == 'welfare') and result is not None:
         if result.nameRect is None:
             result.setName('')
@@ -517,19 +533,33 @@ def pt_detect(path, device, models, gray=False, byteMode=False, perspect=False):
             model, stride, img_size, names = model_setting(hangul_weights, half, hangul_option[0])
             image_pack.reset(img_size, stride)
 
-            img, im0s = image_pack.setSizeCrop(result.nameRect, 640)
-            # image_pack.setCrop(result.nameRect)
-            # image_pack.syncImgSizeWithGray()
-            # image_pack.makeSquareWithGray()
-            # image_pack.resize(320)
-            # img, im0s = image_pack.getImg()
+            img, im0s = image_pack.setSizeCrop(result.nameRect, 480)
+            # oImg = image_pack.getOImg()
+            # cropImage = image_pack.crop(result.nameRect[0][0], oImg)
+            img, im0s = image_pack.resize_ratio(im0s, 640)
 
-            name = path.split('/')[-1]
-            cv2.imwrite(f'crop/{name}.jpg', im0s)
+            cropName = path.split('/')[-1]
+            cv2.imwrite(f'crop/{cropName}.jpg', im0s)
 
-            det = detecting(model, img, im0s, device, img_size, half, hangul_option[1:])
+            det = detecting(model, img, im0s, device, img_size, half, hangul_option[1:], ciou)
             name = hangulScan(det, names)
             result.setName(name)
+
+    # 암호 일련번호 검출
+    if cla == 'driver' and result is not None:
+        if result.encnumRect is not None:
+            model, stride, img_size, names = model_setting(encnum_weights, half, encnum_option[0])
+            image_pack.setImg(image_pack.getOImg())
+            image_pack.reset(img_size, stride)
+
+            img, im0s = image_pack.setSizeCrop(result.encnumRect, 640)
+
+            cropName = path.split('/')[-1]
+            cv2.imwrite(f'crop/{cropName}.jpg', im0s)
+
+            det = detecting(model, img, im0s, device, img_size, half, encnum_option[1:])
+            encnum = encnumScan(det, names)
+            result.setEncnum(encnum)
 
     return result
 

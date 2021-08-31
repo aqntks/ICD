@@ -67,17 +67,18 @@ class ImagePack:
         return self.t_img, self.n_img
 
     def setSizeCrop(self, rect, size):
-        if self.n_img.shape[1] < size:
-            return self.t_img, self.n_img
+        if self.n_img.shape[1] <= size:
+            self.n_img = self.crop((rect[0][0][0], rect[0][0][1], rect[0][0][2], rect[0][0][3]), self.n_img)
+        else:
+            w = rect[0][0][2] - rect[0][0][0]
+            x1 = rect[0][0][0]
+            x2 = rect[0][0][2]
 
-        w = rect[0][0][2] - rect[0][0][0]
-        x1 = rect[0][0][0]
-        x2 = rect[0][0][2]
+            if w < size:
+                x2 = x1 + size
 
-        if w < size:
-            x2 = x1 + size
+            self.n_img = self.crop((x1, rect[0][0][1], x2, rect[0][0][3]), self.n_img)
 
-        self.n_img = self.crop((x1, rect[0][0][1], x2, rect[0][0][3]), self.n_img)
         self.t_img = self.img2pyt(self.n_img)
 
         return self.t_img, self.n_img
@@ -116,6 +117,24 @@ class ImagePack:
     def resize(self, size):
         img = cv2.resize(self.n_img, dsize=(size, size))
         self.setImg(img)
+
+    def resize_ratio(self, image, size):
+        width = image.shape[1]
+        height = image.shape[0]
+        widthBetter = True if width > height else False
+
+        if widthBetter:
+            ratio = size / width
+            img = cv2.resize(image, dsize=(size, int(height * ratio)))
+        else:
+            ratio = size / height
+            img = cv2.resize(image, dsize=(int(width * ratio), size))
+
+        self.setImg(img)
+
+        return self.t_img, self.n_img
+
+
 
     def makeSquareWithGray(self):
         w = self.n_img.shape[1]

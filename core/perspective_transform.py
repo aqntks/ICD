@@ -634,6 +634,7 @@ def test(path, name):
     cv2.imwrite(f'C:/Users/home/Desktop/py_workspace/id_detect/data/pespective_result/per_{name}.jpg', warped)
     print(name + '-------- 성공')
 
+
 if __name__ == "__main__":
     input_dir = 'C:/Users/home/Desktop/work/test_img/perspect_test_img/'
     # input_dir = 'C:/Users/home/Desktop/idscan/IDCard/driver/2020-04-02/'
