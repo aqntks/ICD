@@ -1,2 +1,2 @@
-# ID-Card-Detect
-ID Card Detect
+# ICD
+ICD
