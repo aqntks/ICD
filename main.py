@@ -5,6 +5,8 @@ import torch
 import argparse
 import pandas as pd
 
+from code1ocr.code1ocr import Code1OCR
+
 from core.util import watchDir
 from core.id_card import *
 from core.id_scan import pt_detect
@@ -41,6 +43,7 @@ def main(arg):
     encnum_model = attempt_load(encnum_weight, map_location=device)
     models = (cls_model, jumin_model, driver_model, passport_model, welfare_model, alien_model, hangul_model, encnum_model)
 
+    code1ocr = Code1OCR()
     print('----- 모델 로드 완료 -----')
 
     # while True:
@@ -64,13 +67,17 @@ def main(arg):
     jumin_result_csv, driver_result_csv, welfare_result_csv, alien_result_csv, passport_result_csv = \
         pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
+
+    ####### tests
+    result_csv = pd.DataFrame()
+
     fileList = watchDir(img_path)
     if fileList:
         images = [x for x in fileList if x.split('.')[-1].lower() in img_formats]
         for img in images:
 
             # pytorch 검출
-            result = pt_detect(img, device, models, ciou, gray=gray, byteMode=False, perspect=False)
+            result = pt_detect(img, device, models, ciou, code1ocr, gray=gray, byteMode=False, perspect=False)
             print(img)
             if result is None:
                 print('검출 실패')
@@ -93,7 +100,26 @@ def main(arg):
                 df = result.mkDataFrame(img)
                 passport_result_csv = pd.concat([passport_result_csv, df])
 
+            ####### test$$$4
+            if len(result.name) > 3 and '성명' in result.name:
+                result.name = result.name.replace('성명', '')
+            if len(result.name) > 3:
+                result.name = result.name[0:3]
+            if type(result) is Jumin:
+                df = pd.DataFrame({"jumin": [result.regnum], "name": [result.name],
+                                   "license": ['-'], "encnum": ['-'], "issue": [result.issueDate]})
+                result_csv = pd.concat([result_csv, df])
+            if type(result) is Driver:
+                if len(result.local):
+                    result.licensenum = result.local + '-' + result.licensenum
+                df = pd.DataFrame({"jumin": [result.regnum], "name": [result.name],
+                                   "license": [result.licensenum], "encnum": [result.encnum], "issue": [result.issueDate]})
+                result_csv = pd.concat([result_csv, df])
+
         images.clear()
+
+    ###3 테스트 용
+    result_csv.to_csv('csv/result.csv', index=False, encoding='utf-8-sig')
 
     print(jumin_result_csv)
     jumin_result_csv.to_csv('csv/jumin_result.csv', index=False, encoding='utf-8-sig')
@@ -111,6 +137,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', type=int, default=-1)
     parser.add_argument('--ciou', type=float, default=20)
-    parser.add_argument('--gray', type=bool, default=False)
+    parser.add_argument('--gray', type=bool, default=True)
     opt = parser.parse_args()
     main(opt)

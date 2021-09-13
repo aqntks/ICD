@@ -40,7 +40,7 @@ def detecting(model, img, im0s, device, img_size, half, option, ciou=20):
     detect = None
     for _, det in enumerate(prediction):
         obj, det[:, :4] = {}, scale_coords(img.shape[2:], det[:, :4], im0s.shape).round()
-        detect = det
+        detect = det.cpu()
 
     # 중복 상자 제거
     detList = []
@@ -113,7 +113,7 @@ def juminScan(det, names):
     if bracketRect:
         nameRect[0][0][2] = bracketRect[0][0][0]
 
-    return Jumin(nameRect, regnum, issueDate)
+    return Jumin(nameRect, regnum, issueDate, issueDateRect)
 
 
 # 운전면허증 검출
@@ -157,7 +157,7 @@ def driverScan(det, names):
     if encnumRect is not None:
         encnum = rect_in_value(det, encnumRect, names)
 
-    return Driver(nameRect, regnum, issueDate, local, licensenum, encnum, encnumRect)
+    return Driver(nameRect, regnum, issueDate, local, licensenum, encnum, encnumRect, issueDateRect)
 
 
 # 복지카드 검출
@@ -443,7 +443,7 @@ def idScan(det, names):
     return result, detect_mrz, detect_kor
 
 
-def pt_detect(path, device, models, ciou, gray=False, byteMode=False, perspect=False):
+def pt_detect(path, device, models, ciou, code1ocr, gray=False, byteMode=False, perspect=False):
     id_cls_weights, jumin_weights, driver_weights, passport_weights, welfare_weights, alien_weights, hangul_weights, encnum_weights = models
 
     half = device.type != 'cpu'
@@ -468,6 +468,7 @@ def pt_detect(path, device, models, ciou, gray=False, byteMode=False, perspect=F
     encnum_option = (img_size, confidence, iou)
     f.close()
 
+    c1 = time.time()
     # 분류
     model, stride, img_size, names = model_setting(id_cls_weights, half, id_cls_option[0])
     image_pack = ImagePack(path, img_size, stride, byteMode=byteMode, gray=gray, perspect=perspect)
@@ -491,7 +492,9 @@ def pt_detect(path, device, models, ciou, gray=False, byteMode=False, perspect=F
                 break
     if cla is None:
         return None
+    print('분류', time.time() - c1)
 
+    i1 = time.time()
     if cla == 'jumin':
         model, stride, img_size, names = model_setting(jumin_weights, half, jumin_option[0])
         image_pack.reset(img_size, stride)
@@ -524,7 +527,9 @@ def pt_detect(path, device, models, ciou, gray=False, byteMode=False, perspect=F
         result = passportScan(det, names)
     else:
         result = None
+    print('신분증', time.time() - i1)
 
+    h1 = time.time()
     # 이름 검출
     if (cla == 'jumin' or cla == 'driver' or cla == 'welfare') and result is not None:
         if result.nameRect is None:
@@ -544,22 +549,80 @@ def pt_detect(path, device, models, ciou, gray=False, byteMode=False, perspect=F
             det = detecting(model, img, im0s, device, img_size, half, hangul_option[1:], ciou)
             name = hangulScan(det, names)
             result.setName(name)
+    print('이름검출', time.time() - h1)
 
-    # 암호 일련번호 검출
-    if cla == 'driver' and result is not None:
-        if result.encnumRect is not None:
+    # #### 암호 일련번호
+    enc1 = time.time()
+    if (cla == 'driver') and result is not None:
+        if result.encnumRect is None:
+            result.setEncnum('')
+        else:
             model, stride, img_size, names = model_setting(encnum_weights, half, encnum_option[0])
-            image_pack.setImg(image_pack.getOImg())
+            oImg = image_pack.getOImg()
+            image_pack.setImg(oImg)
             image_pack.reset(img_size, stride)
 
-            img, im0s = image_pack.setSizeCrop(result.encnumRect, 640)
+            print(result.encnumRect)
+            y1, y2 = result.encnumRect[0][0][1], result.encnumRect[0][0][3]
+            result.encnumRect[0][0][3] = result.encnumRect[0][0][3] - int((y2 - y1) * 0.3)
+            img, im0s = image_pack.setCrop(result.encnumRect)
+            # img, im0s = image_pack.setSizeCrop(result.encnumRect, 480)
+            img, im0s = image_pack.resize_ratio(im0s, 640)
 
-            cropName = path.split('/')[-1]
-            cv2.imwrite(f'crop/{cropName}.jpg', im0s)
+            # cv2.imshow('46436', im0s)
+            # cv2.waitKey(0)
 
-            det = detecting(model, img, im0s, device, img_size, half, encnum_option[1:])
+            det = detecting(model, img, im0s, device, img_size, half, encnum_option[1:], ciou)
             encnum = encnumScan(det, names)
             result.setEncnum(encnum)
+    print('암호검출', time.time() - enc1)
+
+
+    if result.issueDateRect is None:
+        return result
+
+    ###################################easy
+    easyT = time.time()
+    easyList = []
+    x1, y1, x2, y2 = result.issueDateRect[0][0][0], result.issueDateRect[0][0][1], result.issueDateRect[0][0][2], result.issueDateRect[0][0][3]
+    easyList.append([int(x1), int(x2), int(y1), int(y2)])
+    if cla == 'driver':
+        if result.encnumRect is None:
+            return result
+        x1, y1, x2, y2 = result.encnumRect[0][0][0], result.encnumRect[0][0][1], result.encnumRect[0][0][2], result.encnumRect[0][0][3]
+        easyList.append([int(x1), int(x2), int(y1), int(y2)])
+
+    results = code1ocr.code1ocr(image_pack.getOImg(), easyList)
+
+    result_line = []
+
+    for r in results:
+        line = r[1].replace(' ', '')
+        result_line.append(line)
+
+    if len(result_line) == 2:
+        issue = result_line[0]
+        encnum = result_line[1]
+    else:
+        encnum = '~'
+        issue = result_line[0]
+
+    if encnum != '-':
+        en_dg_list = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S',
+                      'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+        encnum = encnum.replace('-', '').replace('.', '').replace('(', '')
+        for e in encnum:
+            if (e in en_dg_list) is False:
+                encnum = encnum.replace(e, '')
+
+    issue = issue.replace('-', '').replace('(', '').replace('L', '1').replace('O', '0').replace('Q', '0') \
+        .replace('U', '0').replace('D', '0').replace('I', '1').replace('Z', '2').replace('B', '3') \
+        .replace('A', '4').replace('S', '5').replace('T', '1')
+
+    # if encnum != '~':
+    #     result.encnum = encnum
+    result.issueDate = issue
+    print("code1ocr", time.time() - easyT)
 
     return result
 

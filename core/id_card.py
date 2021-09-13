@@ -24,8 +24,9 @@ class Id:
 
 
 class Jumin(Id):
-    def __init__(self, nameRect, regnum, issueDate):
+    def __init__(self, nameRect, regnum, issueDate, issueDateRect):
         super().__init__(nameRect, regnum, issueDate)
+        self.issueDateRect = issueDateRect
 
     def mkDataFrameJson(self):
         series = pd.Series({"IDENTYPE": 'JUMIN', "NAME": self.name, "JUMIN": self.regnum, "ISSUE_DATE": self.issueDate,
@@ -48,12 +49,13 @@ class Jumin(Id):
 
 
 class Driver(Id):
-    def __init__(self, nameRect, regnum, issueDate, local, licensenum, encnum, encnumRect):
+    def __init__(self, nameRect, regnum, issueDate, local, licensenum, encnum, encnumRect, issueDateRect):
         super().__init__(nameRect, regnum, issueDate)
         self.local = self.localRename(local)
         self.licensenum = licensenum
         self.encnum = encnum
         self.encnumRect = encnumRect
+        self.issueDateRect = issueDateRect
 
     def resultPrint(self):
         super().resultPrint()

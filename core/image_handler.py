@@ -134,8 +134,6 @@ class ImagePack:
 
         return self.t_img, self.n_img
 
-
-
     def makeSquareWithGray(self):
         w = self.n_img.shape[1]
         h = self.n_img.shape[0]
