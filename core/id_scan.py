@@ -6,6 +6,7 @@ from core.id_card import *
 from core.general import *
 from core.correction import *
 from core.image_handler import ImagePack
+from core.perspective_transform import perspective_transform
 
 
 # pt 모델 설정 세팅
@@ -53,19 +54,25 @@ def detecting(model, img, im0s, device, img_size, half, option, ciou=20):
 
 
 # ID 카드 분류
-def id_classification(det):
-    bestConf = 0
-    bestId = None
+def id_classification(det, names):
+    bestConf, bestPlateConf = 0, 0
+    bestId, plateArea, bestIdRect = None, None, None
     id_list = ['jumin', 'driver', 'welfare', 'alien']
     for *rect, conf, cls in det:
-        if conf > bestConf:
-            bestConf = conf
-            bestId = cls
+        if names[int(cls)] == 'plate':
+            if conf > bestPlateConf:
+                bestPlateConf = conf
+                plateArea = rect
+        else:
+            if conf > bestConf:
+                bestConf = conf
+                bestId = cls
+                bestIdRect = rect
 
     if bestId is None:
-        return None
+        return None, plateArea, bestIdRect
     else:
-        return id_list[int(bestId)]
+        return id_list[int(bestId)], plateArea, bestIdRect
 
 
 # 여권 검출 여부 체크
@@ -474,7 +481,7 @@ def pt_detect(path, device, models, ciou, code1ocr, gray=False, byteMode=False, 
     image_pack = ImagePack(path, img_size, stride, byteMode=byteMode, gray=gray, perspect=perspect)
     img, im0s = image_pack.getImg()
     det = detecting(model, img, im0s, device, img_size, half, id_cls_option[1:])
-    cla = id_classification(det)
+    cla, plateArea, idRect = id_classification(det, names)
     if cla is None:
         model, stride, img_size, names = model_setting(passport_weights, half, passport_option[0])
         image_pack.reset(img_size, stride)
@@ -493,6 +500,19 @@ def pt_detect(path, device, models, ciou, code1ocr, gray=False, byteMode=False, 
     if cla is None:
         return None
     print('분류', time.time() - c1)
+
+    # if plateArea is not None:
+    #     _, im0s = image_pack.setCrop(plateArea)
+
+    p1 = time.time()
+    perspect_img = perspective_transform(im0s)
+    print('perspective', time.time() - p1)
+    image_pack.o_img = perspect_img
+    image_pack.setImg(perspect_img)
+
+    _, im0s = image_pack.getImg()
+    img_name = path.split('/')[-1].split('.')[0]
+    cv2.imwrite(f'data/{img_name}.jpg', im0s)
 
     i1 = time.time()
     if cla == 'jumin':
@@ -538,20 +558,21 @@ def pt_detect(path, device, models, ciou, code1ocr, gray=False, byteMode=False, 
             model, stride, img_size, names = model_setting(hangul_weights, half, hangul_option[0])
             image_pack.reset(img_size, stride)
 
-            img, im0s = image_pack.setSizeCrop(result.nameRect, 480)
-            # oImg = image_pack.getOImg()
-            # cropImage = image_pack.crop(result.nameRect[0][0], oImg)
-            img, im0s = image_pack.resize_ratio(im0s, 640)
+            _, im0s = image_pack.setSizeCrop(result.nameRect, 480)
+            _, _ = image_pack.resize_ratio(im0s, 640)
 
-            cropName = path.split('/')[-1]
-            cv2.imwrite(f'crop/{cropName}.jpg', im0s)
+            image_pack.setGray()
+            img, im0s = image_pack.getImg()
+
+            img_name = path.split('/')[-1].split('.')[0]
+            cv2.imwrite(f'crop/name_{img_name}.jpg', im0s)
 
             det = detecting(model, img, im0s, device, img_size, half, hangul_option[1:], ciou)
             name = hangulScan(det, names)
             result.setName(name)
     print('이름검출', time.time() - h1)
 
-    # #### 암호 일련번호
+    #### 암호 일련번호
     enc1 = time.time()
     if (cla == 'driver') and result is not None:
         if result.encnumRect is None:
@@ -562,13 +583,17 @@ def pt_detect(path, device, models, ciou, code1ocr, gray=False, byteMode=False, 
             image_pack.setImg(oImg)
             image_pack.reset(img_size, stride)
 
-            print(result.encnumRect)
             y1, y2 = result.encnumRect[0][0][1], result.encnumRect[0][0][3]
             result.encnumRect[0][0][3] = result.encnumRect[0][0][3] - int((y2 - y1) * 0.3)
-            img, im0s = image_pack.setCrop(result.encnumRect)
+            _, im0s = image_pack.setCrop(result.encnumRect)
             # img, im0s = image_pack.setSizeCrop(result.encnumRect, 480)
-            img, im0s = image_pack.resize_ratio(im0s, 640)
 
+            # _, _ = image_pack.resize_ratio(im0s, 640)
+            image_pack.setGray()
+            img, im0s = image_pack.getImg()
+
+            img_name = path.split('/')[-1].split('.')[0]
+            cv2.imwrite(f'crop/enc_{img_name}.jpg', im0s)
             # cv2.imshow('46436', im0s)
             # cv2.waitKey(0)
 
@@ -577,23 +602,37 @@ def pt_detect(path, device, models, ciou, code1ocr, gray=False, byteMode=False, 
             result.setEncnum(encnum)
     print('암호검출', time.time() - enc1)
 
-
     if result.issueDateRect is None:
         return result
+
+    a = crop(result.issueDateRect[0][0], image_pack.getOImg())
+    img_name = path.split('/')[-1].split('.')[0]
+    cv2.imwrite(f'crop/issue_{img_name}.jpg', a)
 
     ###################################easy
     easyT = time.time()
     easyList = []
     x1, y1, x2, y2 = result.issueDateRect[0][0][0], result.issueDateRect[0][0][1], result.issueDateRect[0][0][2], result.issueDateRect[0][0][3]
     easyList.append([int(x1), int(x2), int(y1), int(y2)])
+
+    # 재외국민 확인
+    result.nameRect
+    hh = idRect[0][0][3] - idRect[0][0][1]
+    idRect[0][0][3] = idRect[0][0][3] + hh/2
+    iii = crop(idRect[0][0], image_pack.o_img)
+    easyList.append(xyxy2xxyy(idRect[0][0], intMode=True))
     if cla == 'driver':
         if result.encnumRect is None:
             return result
+
+        # 테스트 ---- 암호일련번호 위치 강제 크롭
+        y1, y2 = result.encnumRect[0][0][1], result.encnumRect[0][0][3]
+        result.encnumRect[0][0][3] = result.encnumRect[0][0][3] - int((y2 - y1) * 0.3)
+
         x1, y1, x2, y2 = result.encnumRect[0][0][0], result.encnumRect[0][0][1], result.encnumRect[0][0][2], result.encnumRect[0][0][3]
         easyList.append([int(x1), int(x2), int(y1), int(y2)])
 
     results = code1ocr.code1ocr(image_pack.getOImg(), easyList)
-
     result_line = []
 
     for r in results:

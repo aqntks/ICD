@@ -31,7 +31,7 @@ class ImagePack:
             # np.dot(rgb[..., :3], [0.299, 0.587, 0.114])
             self.o_img = cv2.cvtColor(self.o_img, cv2.COLOR_BGR2GRAY)
             self.o_img = cv2.cvtColor(self.o_img, cv2.COLOR_GRAY2BGR)
-            cv2.imwrite('test.jpg', self.o_img)
+            # cv2.imwrite('test.jpg', self.o_img)
 
         # self.o_img = cv2.imread(path)  # 원본
         assert self.o_img is not None, '이미지를 찾을 수 없습니다 ' + path
@@ -166,6 +166,12 @@ class ImagePack:
                 newImg = np.concatenate((self.n_img, gray), axis=0)
 
             self.setImg(newImg)
+
+    def setGray(self):
+        image = cv2.cvtColor(self.n_img, cv2.COLOR_BGR2GRAY)
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+
+        self.setImg(image)
 
 
 def letterbox(img, new_shape=(640, 640), color=(114, 114, 114), auto=True, scaleFill=False, scaleup=True, stride=32):

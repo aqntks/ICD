@@ -137,6 +137,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', type=int, default=-1)
     parser.add_argument('--ciou', type=float, default=20)
-    parser.add_argument('--gray', type=bool, default=True)
+    parser.add_argument('--gray', type=bool, default=False)
     opt = parser.parse_args()
     main(opt)

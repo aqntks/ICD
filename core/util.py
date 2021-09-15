@@ -268,3 +268,18 @@ def rect_in_value(det, item, names, charMode=True):
         result += resultDic[d]
 
     return result
+
+
+def rgb2gray2rgb(image):
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+    return image
+
+
+def xyxy2xxyy(rect, intMode=False):
+    x1, y1, x2, y2 = rect[0], rect[1], rect[2], rect[3]
+
+    if intMode:
+        return [int(x1), int(x2), int(y1), int(y2)]
+    else:
+        return [x1, x2, y1, y2]

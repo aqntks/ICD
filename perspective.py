@@ -40,7 +40,10 @@ def perspective(image):
             screenCnt = approx
             break
 
-    cv2.drawContours(image, [screenCnt], -1, (0, 255, 0), 2)
+    try:
+        cv2.drawContours(image, [screenCnt], -1, (0, 255, 0), 2)
+    except:
+        return org
 
     rect = order_points(screenCnt.reshape(4, 2) / r)
 
@@ -60,12 +63,14 @@ def perspective(image):
 
     warped = cv2.warpPerspective(org, M, (int(maxWidth), int(maxHeight)))
 
-    cv2.imshow('ww', warped)
-    cv2.waitKey(0)
+    # cv2.imshow('ww', warped)
+    # cv2.waitKey(0)
 
-    warped = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
+    # warped = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
+    #
+    # warped = cv2.adaptiveThreshold(warped, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 10)
 
-    warped = cv2.adaptiveThreshold(warped, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 10)
+    return warped
 
 
 if __name__ == '__main__':

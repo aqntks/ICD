@@ -480,8 +480,7 @@ def auto_scan_image(path, name):
     print(name + '-------- 성공')
 
 
-def test(path, name):
-    image = cv2.imread(path)
+def perspective_transform(image):
     orig = image.copy()
 
     r = 800.0 / image.shape[0]
@@ -541,12 +540,12 @@ def test(path, name):
     final_contours = []
     contours, hierarchy = cv2.findContours(canny_img.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # 임계값 100 이하의 외곽선 제거 Remove objects smaller than certain threshold // 100 now
+    # 임계값 100 이하의 외곽선 제거
     for i in range(len(contours)):
         if len(contours[i]) > 100:
             final_contours.append(contours[i])
 
-    # 검출 된 외각선 그리기 (사용 안함)
+    # 검출 된 외각선 그리기
     nee = np.zeros((gray.shape[0], gray.shape[1], 3), np.uint8)
 
     for i in range(len(contours)):
@@ -560,7 +559,7 @@ def test(path, name):
     for i in range(len(contours)):
         cv2.drawContours(nee_thres, contours, i, (255, 255, 255), cv2.FILLED, 8)
 
-    # 그레이스케일 Grayscale (사용 안함)
+    # 그레이스케일 Grayscale
     nee_gray = cv2.cvtColor(nee_thres, cv2.COLOR_BGR2GRAY)
     contours, hierarchy = cv2.findContours(nee_gray.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE, offset=(0, 0))
 
@@ -571,9 +570,7 @@ def test(path, name):
     contours, hierarchy = cv2.findContours(image_eroded_with_5x5_kernel.copy(), cv2.RETR_EXTERNAL,
                                            cv2.CHAIN_APPROX_NONE)  # Find contours
 
-
-
-    # 가장 큰 면적으로 가장 큰 윤곽 찾기 Find biggest contour with biggest area
+    # 가장 큰 면적으로 가장 큰 윤곽 찾기
     max_contour_id, max_area_val = 0, 0.0
 
     for i in range(len(contours)):
@@ -581,11 +578,11 @@ def test(path, name):
             max_contour_id = i
             max_area_val = cv2.contourArea(contours[i])
 
-    # 가장 큰 외각선으로 그리기 Get biggest contour
-    chelsea = np.zeros((gray.shape[0], gray.shape[1]), np.uint8)
-    cv2.drawContours(chelsea, contours, max_contour_id, (255, 255, 255), cv2.FILLED, 8, maxLevel=0)
+    # 가장 큰 외각선으로 그리기
+    dy = np.zeros((gray.shape[0], gray.shape[1]), np.uint8)
+    cv2.drawContours(dy, contours, max_contour_id, (255, 255, 255), cv2.FILLED, 8, maxLevel=0)
 
-    edged = cv2.Canny(chelsea, 10, 20)
+    edged = cv2.Canny(dy, 10, 20)
 
     cnts, _ = cv2.findContours(edged.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     cnts = sorted(cnts, key=cv2.contourArea, reverse=True)[:5]
@@ -601,17 +598,13 @@ def test(path, name):
     if 'screenCnt' in locals():
         pass
     else:
-        print(name + '-------- 윤곽선 계산 실패')
-        # cv2.imwrite(f'C:/Users/home/Desktop/py_workspace/id_detect/data/pespective_result/per_{name}_0.jpg', image)
-        return
+        return orig
 
     imageSize = edged.shape[0] * edged.shape[1]
     if cv2.contourArea(screenCnt) / imageSize < 0.1:
-        print(name + '-------- 잘못된 윤곽선 실패')
-        return
+        return orig
 
     cv2.drawContours(image, [screenCnt], -1, (0, 0, 255), 2)
-    # cv2.imwrite(f'C:/Users/home/Desktop/py_workspace/id_detect/data/pespective_result/per_{name}_0.jpg', image)
 
     rect = order_points(screenCnt.reshape(4, 2) / r)
 
@@ -631,8 +624,7 @@ def test(path, name):
 
     warped = cv2.warpPerspective(orig, M, (int(maxWidth), int(maxHeight)))
 
-    cv2.imwrite(f'C:/Users/home/Desktop/py_workspace/id_detect/data/pespective_result/per_{name}.jpg', warped)
-    print(name + '-------- 성공')
+    return warped
 
 
 if __name__ == "__main__":
@@ -640,5 +632,5 @@ if __name__ == "__main__":
     # input_dir = 'C:/Users/home/Desktop/idscan/IDCard/driver/2020-04-02/'
 
     for path in os.listdir(input_dir):
-        test(input_dir + path, path.split('.')[0])
+        perspective_transform(input_dir + path, path.split('.')[0])
 

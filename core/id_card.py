@@ -112,6 +112,7 @@ class Driver(Id):
     def setEncnum(self, encnum):
         self.encnum = encnum
 
+
 class Welfare(Id):
     def __init__(self, nameRect, regnum, issueDate, gradetype, expire):
         super().__init__(nameRect, regnum, issueDate)
