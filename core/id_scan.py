@@ -57,7 +57,7 @@ def detecting(model, img, im0s, device, img_size, half, option, ciou=20):
 def id_classification(det, names):
     bestConf, bestPlateConf = 0, 0
     bestId, plateArea, bestIdRect = None, None, None
-    id_list = ['jumin', 'driver', 'welfare', 'alien']
+    id_list = ['jumin', 'driver', 'welfare', 'alien', '-', 't_jumin']
     for *rect, conf, cls in det:
         if names[int(cls)] == 'plate':
             if conf > bestPlateConf:
@@ -88,8 +88,12 @@ def juminScan(det, names):
     name_conf, regnum_conf, issueDate_conf, bracket_conf = 0, 0, 0, 0
     nameRect, regnumRect, issueDateRect, bracketRect = None, None, None, None
     regnum, issueDate = "", ""
+    expatriate = False
 
     for *rect, conf, cls in det:
+        # 재외국민 여부
+        if names[int(cls)] == 'expatriate':
+            expatriate = True
         if names[int(cls)] == 'name':
             if conf > name_conf:
                 name_conf = conf
@@ -103,12 +107,28 @@ def juminScan(det, names):
                 issueDate_conf = conf
                 issueDateRect = rect
 
+    # 상하좌우 10% 추가
     if regnumRect is not None:
+        regnumRectY = regnumRect[0][0][3] - regnumRect[0][0][1]
+        regnumRect[0][0][0] = int(regnumRect[0][0][0] - regnumRectY * 0.1)
+        regnumRect[0][0][1] = int(regnumRect[0][0][1] - regnumRectY * 0.1)
+        regnumRect[0][0][2] = int(regnumRect[0][0][2] + regnumRectY * 0.1)
+        regnumRect[0][0][3] = int(regnumRect[0][0][3] + regnumRectY * 0.1)
         regnum = rect_in_value(det, regnumRect, names)
     if issueDateRect is not None:
+        issueDateRectY = issueDateRect[0][0][3] - issueDateRect[0][0][1]
+        issueDateRect[0][0][0] = int(issueDateRect[0][0][0] - issueDateRectY * 0.1)
+        issueDateRect[0][0][1] = int(issueDateRect[0][0][1] - issueDateRectY * 0.1)
+        issueDateRect[0][0][2] = int(issueDateRect[0][0][2] + issueDateRectY * 0.1)
+        issueDateRect[0][0][3] = int(issueDateRect[0][0][3] + issueDateRectY * 0.1)
         issueDate = rect_in_value(det, issueDateRect, names)
 
     if nameRect:
+        nameRectY = nameRect[0][0][3] - nameRect[0][0][1]
+        nameRect[0][0][0] = int(nameRect[0][0][0] - nameRectY * 0.1)
+        nameRect[0][0][1] = int(nameRect[0][0][1] - nameRectY * 0.1)
+        nameRect[0][0][2] = int(nameRect[0][0][2] + nameRectY * 0.1)
+        nameRect[0][0][3] = int(nameRect[0][0][3] + nameRectY * 0.1)
         for *rect, conf, cls in det:
             if rect[0][0][0] > nameRect[0][0][0] and rect[0][0][1] > nameRect[0][0][1] \
                     and rect[0][0][2] < nameRect[0][0][2] and rect[0][0][3] < nameRect[0][0][3]:
@@ -120,7 +140,89 @@ def juminScan(det, names):
     if bracketRect:
         nameRect[0][0][2] = bracketRect[0][0][0]
 
-    return Jumin(nameRect, regnum, issueDate, issueDateRect)
+    return Jumin(nameRect, regnum, issueDate, issueDateRect, expatriate)
+
+
+# 임시 주민등록증 검출
+def temp_juminScan(det, names):
+    name_conf, regnum_conf, issue1_conf, issue2_conf, expire_conf, check_yes_conf, check_mid_conf = 0, 0, 0, 0, 0, 0, 0
+    nameRect, regnumRect, issue1Rect, issue2Rect, expireRect, check_yesRect, check_midRect = None, None, None, None, None, None, None
+    regnum, issue1, issue2, expire, check = "", "", "", "", ""
+
+    for *rect, conf, cls in det:
+        if names[int(cls)] == 't_jumin_name':
+            if conf > name_conf:
+                name_conf = conf
+                nameRect = rect
+        if names[int(cls)] == 't_jumin_regnum':
+            if conf > regnum_conf:
+                regnum_conf = conf
+                regnumRect = rect
+        if names[int(cls)] == 't_jumin_issue1':
+            if conf > issue1_conf:
+                issue1_conf = conf
+                issue1Rect = rect
+        if names[int(cls)] == 't_jumin_issue2':
+            if conf > issue2_conf:
+                issue2_conf = conf
+                issue2Rect = rect
+        if names[int(cls)] == 't_jumin_expire':
+            if conf > expire_conf:
+                expire_conf = conf
+                expireRect = rect
+        if names[int(cls)] == 'check_yes':
+            if conf > check_yes_conf:
+                check_yes_conf = conf
+                check_yesRect = rect
+        if names[int(cls)] == 'check_mid':
+            if conf > check_mid_conf:
+                check_mid_conf = conf
+                check_midRect = rect
+
+    if check_yesRect and check_midRect:
+        if check_yesRect[0][0][0] < check_midRect[0][0][0]:
+            check = '거주자'
+        else:
+            check = '재외국민'
+
+    # 상하좌우 10% 추가
+    if regnumRect is not None:
+        regnumRectY = regnumRect[0][0][3] - regnumRect[0][0][1]
+        regnumRect[0][0][0] = int(regnumRect[0][0][0] - regnumRectY * 0.1)
+        regnumRect[0][0][1] = int(regnumRect[0][0][1] - regnumRectY * 0.1)
+        regnumRect[0][0][2] = int(regnumRect[0][0][2] + regnumRectY * 0.1)
+        regnumRect[0][0][3] = int(regnumRect[0][0][3] + regnumRectY * 0.1)
+        regnum = rect_in_value(det, regnumRect, names)
+    if issue1Rect is not None:
+        issue1RectY = issue1Rect[0][0][3] - issue1Rect[0][0][1]
+        issue1Rect[0][0][0] = int(issue1Rect[0][0][0] - issue1RectY * 0.1)
+        issue1Rect[0][0][1] = int(issue1Rect[0][0][1] - issue1RectY * 0.1)
+        issue1Rect[0][0][2] = int(issue1Rect[0][0][2] + issue1RectY * 0.1)
+        issue1Rect[0][0][3] = int(issue1Rect[0][0][3] + issue1RectY * 0.1)
+        issue1 = rect_in_value(det, issue1Rect, names)
+    if issue2Rect is not None:
+        issue2RectY = issue2Rect[0][0][3] - issue2Rect[0][0][1]
+        issue2Rect[0][0][0] = int(issue2Rect[0][0][0] - issue2RectY * 0.1)
+        issue2Rect[0][0][1] = int(issue2Rect[0][0][1] - issue2RectY * 0.1)
+        issue2Rect[0][0][2] = int(issue2Rect[0][0][2] + issue2RectY * 0.1)
+        issue2Rect[0][0][3] = int(issue2Rect[0][0][3] + issue2RectY * 0.1)
+        issue2 = rect_in_value(det, issue2Rect, names)
+    if expireRect is not None:
+        expireRectY = expireRect[0][0][3] - expireRect[0][0][1]
+        expireRect[0][0][0] = int(expireRect[0][0][0] - expireRectY * 0.1)
+        expireRect[0][0][1] = int(expireRect[0][0][1] - expireRectY * 0.1)
+        expireRect[0][0][2] = int(expireRect[0][0][2] + expireRectY * 0.1)
+        expireRect[0][0][3] = int(expireRect[0][0][3] + expireRectY * 0.1)
+        expire = rect_in_value(det, expireRect, names)
+
+    if nameRect:
+        nameRectY = nameRect[0][0][3] - nameRect[0][0][1]
+        nameRect[0][0][0] = int(nameRect[0][0][0] - nameRectY * 0.1)
+        nameRect[0][0][1] = int(nameRect[0][0][1] - nameRectY * 0.1)
+        nameRect[0][0][2] = int(nameRect[0][0][2] + nameRectY * 0.1)
+        nameRect[0][0][3] = int(nameRect[0][0][3] + nameRectY * 0.1)
+
+    return JuminTemp(nameRect, regnum, issue1, issue1Rect, expire, check)
 
 
 # 운전면허증 검출
@@ -155,14 +257,42 @@ def driverScan(det, names):
                 local_conf = conf
                 local = names[int(cls)]
 
+    # 상하좌우 10% 추가
     if regnumRect is not None:
+        regnumRectY = regnumRect[0][0][3] - regnumRect[0][0][1]
+        regnumRect[0][0][0] = int(regnumRect[0][0][0] - regnumRectY * 0.1)
+        regnumRect[0][0][1] = int(regnumRect[0][0][1] - regnumRectY * 0.1)
+        regnumRect[0][0][2] = int(regnumRect[0][0][2] + regnumRectY * 0.1)
+        regnumRect[0][0][3] = int(regnumRect[0][0][3] + regnumRectY * 0.1)
         regnum = rect_in_value(det, regnumRect, names)
     if issueDateRect is not None:
+        issueDateRectY = issueDateRect[0][0][3] - issueDateRect[0][0][1]
+        issueDateRect[0][0][0] = int(issueDateRect[0][0][0] - issueDateRectY * 0.1)
+        issueDateRect[0][0][1] = int(issueDateRect[0][0][1] - issueDateRectY * 0.1)
+        issueDateRect[0][0][2] = int(issueDateRect[0][0][2] + issueDateRectY * 0.1)
+        issueDateRect[0][0][3] = int(issueDateRect[0][0][3] + issueDateRectY * 0.1)
         issueDate = rect_in_value(det, issueDateRect, names)
     if licensenumRect is not None:
+        licensenumRectY = licensenumRect[0][0][3] - licensenumRect[0][0][1]
+        licensenumRect[0][0][0] = int(licensenumRect[0][0][0] - licensenumRectY * 0.1)
+        licensenumRect[0][0][1] = int(licensenumRect[0][0][1] - licensenumRectY * 0.1)
+        licensenumRect[0][0][2] = int(licensenumRect[0][0][2] + licensenumRectY * 0.1)
+        licensenumRect[0][0][3] = int(licensenumRect[0][0][3] + licensenumRectY * 0.1)
         licensenum = rect_in_value(det, licensenumRect, names)
     if encnumRect is not None:
+        encnumRectY = encnumRect[0][0][3] - encnumRect[0][0][1]
+        encnumRect[0][0][0] = int(encnumRect[0][0][0] - encnumRectY * 0.1)
+        encnumRect[0][0][1] = int(encnumRect[0][0][1] - encnumRectY * 0.1)
+        encnumRect[0][0][2] = int(encnumRect[0][0][2] + encnumRectY * 0.1)
+        encnumRect[0][0][3] = int(encnumRect[0][0][3] + encnumRectY * 0.1)
         encnum = rect_in_value(det, encnumRect, names)
+
+    if nameRect:
+        nameRectY = nameRect[0][0][3] - nameRect[0][0][1]
+        nameRect[0][0][0] = int(nameRect[0][0][0] - nameRectY * 0.1)
+        nameRect[0][0][1] = int(nameRect[0][0][1] - nameRectY * 0.1)
+        nameRect[0][0][2] = int(nameRect[0][0][2] + nameRectY * 0.1)
+        nameRect[0][0][3] = int(nameRect[0][0][3] + nameRectY * 0.1)
 
     return Driver(nameRect, regnum, issueDate, local, licensenum, encnum, encnumRect, issueDateRect)
 
@@ -450,11 +580,42 @@ def idScan(det, names):
     return result, detect_mrz, detect_kor
 
 
+# code1ocr issueDate & encnum 검출
+def code1ocr_issue_encnum(results):
+    result_line = []
+
+    for r in results:
+        line = r[1].replace(' ', '')
+        result_line.append(line)
+
+    if len(result_line) == 2:
+        issue = result_line[0]
+        encnum = result_line[1]
+    else:
+        encnum = '~'
+        issue = result_line[0]
+
+    if encnum != '-':
+        en_dg_list = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S',
+                      'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+        encnum = encnum.replace('-', '').replace('.', '').replace('(', '')
+        for e in encnum:
+            if (e in en_dg_list) is False:
+                encnum = encnum.replace(e, '')
+
+    issue = issue.replace('-', '').replace('(', '').replace('L', '1').replace('O', '0').replace('Q', '0') \
+        .replace('U', '0').replace('D', '0').replace('I', '1').replace('Z', '2').replace('B', '3') \
+        .replace('A', '4').replace('S', '5').replace('T', '1')
+
+    return issue, encnum
+
+
 def pt_detect(path, device, models, ciou, code1ocr, gray=False, byteMode=False, perspect=False):
     id_cls_weights, jumin_weights, driver_weights, passport_weights, welfare_weights, alien_weights, hangul_weights, encnum_weights = models
 
     half = device.type != 'cpu'
-    # config 로드
+
+    # config 로드 --------------------------------------------------------------------------------------------------
     with open('config.yaml', 'r') as f:
         config = yaml.safe_load(f)
     img_size, confidence, iou = config['cls-img_size'], config['cls-confidence'], config['cls-iou']
@@ -475,8 +636,8 @@ def pt_detect(path, device, models, ciou, code1ocr, gray=False, byteMode=False, 
     encnum_option = (img_size, confidence, iou)
     f.close()
 
+    # 분류 --------------------------------------------------------------------------------------------------------
     c1 = time.time()
-    # 분류
     model, stride, img_size, names = model_setting(id_cls_weights, half, id_cls_option[0])
     image_pack = ImagePack(path, img_size, stride, byteMode=byteMode, gray=gray, perspect=perspect)
     img, im0s = image_pack.getImg()
@@ -493,27 +654,40 @@ def pt_detect(path, device, models, ciou, code1ocr, gray=False, byteMode=False, 
         image_pack.reset(img_size, stride)
         img, im0s = image_pack.getImg()
         det = detecting(model, img, im0s, device, img_size, half, driver_option[1:])
+        regnumB, nameB, issueB = False, False, False
         for *rect, conf, cls in det:
             if (names[int(cls)] == 'encnum' or names[int(cls)] == 'period') and conf > 0.9:
                 cla = 'driver'
                 break
+            if names[int(cls)] == 'regnum':
+                regnumB = True
+            if names[int(cls)] == 'name':
+                nameB = True
+            if names[int(cls)] == 'issuedate':
+                issueB = True
+        if regnumB and nameB and issueB:
+            cla = 'jumin'
+
     if cla is None:
         return None
     print('분류', time.time() - c1)
 
+    # plate crop --------------------------------------------------------------------------------------------------
     # if plateArea is not None:
     #     _, im0s = image_pack.setCrop(plateArea)
 
-    p1 = time.time()
-    perspect_img = perspective_transform(im0s)
-    print('perspective', time.time() - p1)
-    image_pack.o_img = perspect_img
-    image_pack.setImg(perspect_img)
+    # perspective transform ---------------------------------------------------------------------------------------
+    # p1 = time.time()
+    # perspect_img = perspective_transform(im0s)
+    # print('perspective', time.time() - p1)
+    # image_pack.o_img = perspect_img
+    # image_pack.setImg(perspect_img)
+    #
+    # _, im0s = image_pack.getImg()
+    # img_name = path.split('/')[-1].split('.')[0]
+    # cv2.imwrite(f'data/{img_name}.jpg', im0s)
 
-    _, im0s = image_pack.getImg()
-    img_name = path.split('/')[-1].split('.')[0]
-    cv2.imwrite(f'data/{img_name}.jpg', im0s)
-
+    # 신분증 검출 ----------------------------------------------------------------------------------------------------
     i1 = time.time()
     if cla == 'jumin':
         model, stride, img_size, names = model_setting(jumin_weights, half, jumin_option[0])
@@ -521,6 +695,12 @@ def pt_detect(path, device, models, ciou, code1ocr, gray=False, byteMode=False, 
         img, im0s = image_pack.getImg()
         det = detecting(model, img, im0s, device, img_size, half, jumin_option[1:])
         result = juminScan(det, names)
+    elif cla == 't_jumin':
+        model, stride, img_size, names = model_setting(jumin_weights, half, jumin_option[0])
+        image_pack.reset(img_size, stride)
+        img, im0s = image_pack.getImg()
+        det = detecting(model, img, im0s, device, img_size, half, jumin_option[1:])
+        result = temp_juminScan(det, names)
     elif cla == 'driver':
         model, stride, img_size, names = model_setting(driver_weights, half, driver_option[0])
         image_pack.reset(img_size, stride)
@@ -549,9 +729,9 @@ def pt_detect(path, device, models, ciou, code1ocr, gray=False, byteMode=False, 
         result = None
     print('신분증', time.time() - i1)
 
+    # 이름 검출 ----------------------------------------------------------------------------------------------------
     h1 = time.time()
-    # 이름 검출
-    if (cla == 'jumin' or cla == 'driver' or cla == 'welfare') and result is not None:
+    if (cla == 'jumin' or cla == 'driver' or cla == 'welfare' or cla == 't_jumin') and result is not None:
         if result.nameRect is None:
             result.setName('')
         else:
@@ -560,7 +740,7 @@ def pt_detect(path, device, models, ciou, code1ocr, gray=False, byteMode=False, 
 
             _, im0s = image_pack.setSizeCrop(result.nameRect, 480)
             _, _ = image_pack.resize_ratio(im0s, 640)
-
+            # _, im0s = image_pack.setCrop(result.nameRect)
             image_pack.setGray()
             img, im0s = image_pack.getImg()
 
@@ -572,7 +752,7 @@ def pt_detect(path, device, models, ciou, code1ocr, gray=False, byteMode=False, 
             result.setName(name)
     print('이름검출', time.time() - h1)
 
-    #### 암호 일련번호
+    # 암호 일련번호 검출 --------------------------------------------------------------------------------------------
     enc1 = time.time()
     if (cla == 'driver') and result is not None:
         if result.encnumRect is None:
@@ -602,61 +782,35 @@ def pt_detect(path, device, models, ciou, code1ocr, gray=False, byteMode=False, 
             result.setEncnum(encnum)
     print('암호검출', time.time() - enc1)
 
+    # code1ocr --------------------------------------------------------------------------------------------------
     if result.issueDateRect is None:
         return result
 
+    # 테스트용
     a = crop(result.issueDateRect[0][0], image_pack.getOImg())
     img_name = path.split('/')[-1].split('.')[0]
     cv2.imwrite(f'crop/issue_{img_name}.jpg', a)
-
-    ###################################easy
+    
     easyT = time.time()
     easyList = []
+    # issueDate 위치 저장
     x1, y1, x2, y2 = result.issueDateRect[0][0][0], result.issueDateRect[0][0][1], result.issueDateRect[0][0][2], result.issueDateRect[0][0][3]
     easyList.append([int(x1), int(x2), int(y1), int(y2)])
 
-    # 재외국민 확인
-    result.nameRect
-    hh = idRect[0][0][3] - idRect[0][0][1]
-    idRect[0][0][3] = idRect[0][0][3] + hh/2
-    iii = crop(idRect[0][0], image_pack.o_img)
-    easyList.append(xyxy2xxyy(idRect[0][0], intMode=True))
+    # 암호 일련번호 위치 저장
     if cla == 'driver':
         if result.encnumRect is None:
             return result
-
-        # 테스트 ---- 암호일련번호 위치 강제 크롭
-        y1, y2 = result.encnumRect[0][0][1], result.encnumRect[0][0][3]
-        result.encnumRect[0][0][3] = result.encnumRect[0][0][3] - int((y2 - y1) * 0.3)
+        
+        # 암호일련번호 위치 강제 크롭 (임시)
+        # y1, y2 = result.encnumRect[0][0][1], result.encnumRect[0][0][3]
+        # result.encnumRect[0][0][3] = result.encnumRect[0][0][3] - int((y2 - y1) * 0.3)
 
         x1, y1, x2, y2 = result.encnumRect[0][0][0], result.encnumRect[0][0][1], result.encnumRect[0][0][2], result.encnumRect[0][0][3]
         easyList.append([int(x1), int(x2), int(y1), int(y2)])
 
     results = code1ocr.code1ocr(image_pack.getOImg(), easyList)
-    result_line = []
-
-    for r in results:
-        line = r[1].replace(' ', '')
-        result_line.append(line)
-
-    if len(result_line) == 2:
-        issue = result_line[0]
-        encnum = result_line[1]
-    else:
-        encnum = '~'
-        issue = result_line[0]
-
-    if encnum != '-':
-        en_dg_list = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S',
-                      'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-        encnum = encnum.replace('-', '').replace('.', '').replace('(', '')
-        for e in encnum:
-            if (e in en_dg_list) is False:
-                encnum = encnum.replace(e, '')
-
-    issue = issue.replace('-', '').replace('(', '').replace('L', '1').replace('O', '0').replace('Q', '0') \
-        .replace('U', '0').replace('D', '0').replace('I', '1').replace('Z', '2').replace('B', '3') \
-        .replace('A', '4').replace('S', '5').replace('T', '1')
+    issue, encnum = code1ocr_issue_encnum(results)
 
     # if encnum != '~':
     #     result.encnum = encnum

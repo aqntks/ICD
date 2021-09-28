@@ -24,9 +24,10 @@ class Id:
 
 
 class Jumin(Id):
-    def __init__(self, nameRect, regnum, issueDate, issueDateRect):
+    def __init__(self, nameRect, regnum, issueDate, issueDateRect, expatriate):
         super().__init__(nameRect, regnum, issueDate)
         self.issueDateRect = issueDateRect
+        self.expatriate = expatriate
 
     def mkDataFrameJson(self):
         series = pd.Series({"IDENTYPE": 'JUMIN', "NAME": self.name, "JUMIN": self.regnum, "ISSUE_DATE": self.issueDate,
@@ -34,8 +35,6 @@ class Jumin(Id):
         return pd.DataFrame(series)
 
     def mkDataFrameDict(self):
-        if len(self.name) > 3:
-            self.name = self.name[0:3]
         result = OrderedDict()
         result['ocr_result'] = {"IDENTYPE": 'JUMIN', "NAME": self.name, "JUMIN": self.regnum, "ISSUE_DATE": self.issueDate,
                             "ADDR1": '-', "ADDR2": '-', "SAVE_FILE_NAME": '-'}
@@ -43,9 +42,37 @@ class Jumin(Id):
         return result
 
     def mkDataFrame(self, img):
-        if len(self.name) > 3:
-            self.name = self.name[0:3]
         return pd.DataFrame({"FileName": [img], "NAME": [self.name], "JUMIN": [self.regnum], "ISSUE_DATE": [self.issueDate]})
+
+    def resultPrint(self):
+        if self.expatriate:
+            print('재외국민')
+        super().resultPrint()
+        print("---------------------------------------\n")
+
+
+class JuminTemp(Id):
+    def __init__(self, nameRect, regnum, issue1, issue1Rect, expire, check):
+        super().__init__(nameRect, regnum, issue1)
+        self.issueDateRect = issue1Rect
+        self.expire = expire
+        self.check = check
+
+    def mkDataFrameDict(self):
+        result = OrderedDict()
+        result['ocr_result'] = {"IDENTYPE": 'JUMIN', "NAME": self.name, "JUMIN": self.regnum, "ISSUE_DATE": self.issueDate,
+                            "ADDR1": '-', "ADDR2": '-', "SAVE_FILE_NAME": '-'}
+        result['err_code'] = 10
+        return result
+
+    def mkDataFrame(self, img):
+        return pd.DataFrame({"FileName": [img], "NAME": [self.name], "JUMIN": [self.regnum], "ISSUE_DATE": [self.issueDate]})
+
+    def resultPrint(self):
+        super().resultPrint()
+        print('check: ' + self.check)
+        print('expire: ' + self.expire)
+        print("---------------------------------------\n")
 
 
 class Driver(Id):

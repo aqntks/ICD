@@ -1,4 +1,3 @@
-
 import io
 import cv2
 import pandas as pd
@@ -12,6 +11,7 @@ from collections import OrderedDict
 
 from core.id_scan import pt_detect
 from models.experimental import attempt_load
+from code1ocr.code1ocr import Code1OCR
 
 import pprint
 from PIL import Image
@@ -35,7 +35,7 @@ def predict():
 
         img = Image.open(io.BytesIO(image_bytes))
 
-        result = pt_detect(img, device, models, gray=False, byteMode=True, perspect=False)
+        result = pt_detect(img, device, models, ciou, code1ocr, gray=gray, byteMode=True, perspect=False)
 
         if result is None:
             result_json = pd.DataFrame().to_json(orient="columns")
@@ -55,10 +55,14 @@ def predict():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", default=5000, type=int, help="port number")
-    parser.add_argument('--gpu', type=int, default=-1)
+    parser.add_argument('--gpu', type=int, default=1)
+    parser.add_argument('--ciou', type=float, default=20)
+    parser.add_argument('--gray', type=bool, default=False)
     args = parser.parse_args()
 
     gpu = args.gpu
+    ciou = args.ciou
+    gray = args.gray
     img_formats = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo', 'gif']
 
     # 디바이스 세팅
@@ -71,9 +75,10 @@ if __name__ == "__main__":
     # config 로드
     with open('config.yaml', 'r') as f:
         config = yaml.safe_load(f)
-    img_path, cls_weight, jumin_weight, driver_weight, passport_weight, welfare_weight, alien_weight, hangul_weight = \
+    img_path, cls_weight, jumin_weight, driver_weight, passport_weight, welfare_weight, alien_weight, hangul_weight, encnum_weight = \
         config['images'], config['cls-weights'], config['jumin-weights'], config['driver-weights'], \
-        config['passport-weights'], config['welfare-weights'], config['alien-weights'], config['hangul-weights']
+        config['passport-weights'], config['welfare-weights'], config['alien-weights'], config['hangul-weights'], \
+        config['encnum-weights']
     f.close()
 
     # 모델 세팅
@@ -84,7 +89,11 @@ if __name__ == "__main__":
     welfare_model = attempt_load(welfare_weight, map_location=device)
     alien_model = attempt_load(alien_weight, map_location=device)
     hangul_model = attempt_load(hangul_weight, map_location=device)
-    models = (cls_model, jumin_model, driver_model, passport_model, welfare_model, alien_model, hangul_model)
+    encnum_model = attempt_load(encnum_weight, map_location=device)
+    models = (
+    cls_model, jumin_model, driver_model, passport_model, welfare_model, alien_model, hangul_model, encnum_model)
+
+    code1ocr = Code1OCR()
     print('----- 모델 로드 완료 -----')
 
     # app.run(host="0.0.0.0", port=args.port)

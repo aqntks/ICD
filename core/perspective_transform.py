@@ -628,8 +628,7 @@ def perspective_transform(image):
 
 
 if __name__ == "__main__":
-    input_dir = 'C:/Users/home/Desktop/work/test_img/perspect_test_img/'
-    # input_dir = 'C:/Users/home/Desktop/idscan/IDCard/driver/2020-04-02/'
+    input_dir = ''
 
     for path in os.listdir(input_dir):
         perspective_transform(input_dir + path, path.split('.')[0])
