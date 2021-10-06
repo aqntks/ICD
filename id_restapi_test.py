@@ -21,10 +21,10 @@ from waitress import serve
 
 app = Flask(__name__)
 
-DETECTION_URL = "/aa"
+DETECTION_URL = "/menesdemo"
 
 
-@app.route(f'{DETECTION_URL}/bb', methods=["POST"])
+@app.route(f'{DETECTION_URL}/predict', methods=["POST"])
 def predict():
     if not request.method == "POST":
         return
@@ -45,7 +45,7 @@ def predict():
         return result_json
 
 
-@app.route(f'{DETECTION_URL}/cc/dd', methods=["POST"])
+@app.route(f'{DETECTION_URL}/predict/threshold', methods=["POST"])
 def threshold():
     if not request.method == "POST":
         return

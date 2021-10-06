@@ -1,17 +1,20 @@
+import base64
+
 import pandas as pd
 import pprint
 import argparse
 import requests
 
-
-DETECTION_URL = "http://0.0.0.0:5090/aa"
+DETECTION_URL = "http://115.178.87.177:5090/menesdemo"
+# DETECTION_URL = "http://192.168.219.203:5090/menesdemo"
 
 
 def authenticity(image):
+    DETECTION_URL = "http://115.178.87.177:5090/menesdemo"
     image_data = open(image, "rb").read()
 
     # 신분증 진위확인 요청
-    response = requests.post(f'{DETECTION_URL}/predict', files={"file": image_data, "user_agent": 'code1system'}).json()
+    response = requests.post(f'{DETECTION_URL}/predict', files={"file": image_data}).json()
     pprint.pprint(response)
 
     # return 예시
@@ -27,6 +30,7 @@ def authenticity(image):
 
 
 def change_threshold(threshold):
+    DETECTION_URL = "http://115.178.87.177:5090/menesdemo"
     response = requests.post(f'{DETECTION_URL}/predict/threshold?value={threshold}').json()
     pprint.pprint(response)
 
@@ -38,5 +42,5 @@ def change_threshold(threshold):
 
 
 if __name__ == "__main__":
-    authenticity('data/d240.jpg')
+    authenticity(r'C:\Users\home\Desktop\size/driver4032.JPG')
     # change_threshold(0.6)

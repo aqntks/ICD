@@ -6,7 +6,7 @@ import torch
 import argparse
 import numpy as np
 import json
-
+from id_send import authenticity
 from collections import OrderedDict
 
 from core.id_scan import pt_detect
@@ -30,10 +30,17 @@ def predict():
 
     if request.files.get("file_param_1"):
         image_file = request.files["file_param_1"]
+        # demo_result = request.files["demo_param_1"]
         # face_file = request.files["file_param_face"]
+
+        # ### 진위 여부 검출 여부 수신
+        auth_on = True
+
         image_bytes = image_file.read()
 
         img = Image.open(io.BytesIO(image_bytes))
+
+        img.save("temp/auth_temp.jpg")
 
         result = pt_detect(img, device, models, ciou, code1ocr, gray=gray, byteMode=True, perspect=False)
 
@@ -41,12 +48,15 @@ def predict():
             result_json = pd.DataFrame().to_json(orient="columns")
             print('검출 실패', '\n---------------------------------------')
         else:
-            # df = result.mkDataFrame()
-            # df.columns = ['ocr_result']
-            # df['err_code'] = 10
-            # # print(df, '\n---------------------------------------')
-            # result_json = df.to_json(orient="columns")
-            result_json = json.dumps(result.mkDataFrameDict(), ensure_ascii=False)
+            # 진위 여부
+            if auth_on:
+                auth_result = authenticity('temp/auth_temp.jpg')
+                if auth_result['success'] == 'true':
+                    probability = auth_result['prediction']['probability']
+                    label = auth_result['prediction']['label']
+                    result.set_auth(probability, label)
+            
+            result_json = json.dumps(result.mkDataFrameDict_POC(), ensure_ascii=False)
             pprint.pprint(result_json)
 
         return result_json

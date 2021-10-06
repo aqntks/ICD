@@ -12,6 +12,8 @@ class Id:
             self.nameRect = nameRect
         self.regnum = regnum
         self.issueDate = issueDate
+        self.probability = 0.0
+        self.label = ''
 
     def setName(self, name):
         self.name = name
@@ -22,6 +24,9 @@ class Id:
         print('regum: ' + self.regnum)
         print('issuedate: ' + self.issueDate)
 
+    def set_auth(self, probability, label):
+        self.probability = probability
+        self.label = label
 
 class Jumin(Id):
     def __init__(self, nameRect, regnum, issueDate, issueDateRect, expatriate):
@@ -34,10 +39,12 @@ class Jumin(Id):
                             "ADDR1": '-', "ADDR2": '-'})
         return pd.DataFrame(series)
 
-    def mkDataFrameDict(self):
+    def mkDataFrameDict_POC(self):
         result = OrderedDict()
-        result['ocr_result'] = {"IDENTYPE": 'JUMIN', "NAME": self.name, "JUMIN": self.regnum, "ISSUE_DATE": self.issueDate,
-                            "ADDR1": '-', "ADDR2": '-', "SAVE_FILE_NAME": '-'}
+        result['ocr_result'] = {"IDENTYPE": 'JUMIN', "NAME": self.name, "REGNUM": self.regnum, "ISSUE_DATE": self.issueDate,
+                           "EXPATRIATE": self.expatriate}
+        if self.label:
+            result['demo_result'] = {"demo_result_1": self.label, "demo_result_2": self.probability}
         result['err_code'] = 10
         return result
 
@@ -58,10 +65,12 @@ class JuminTemp(Id):
         self.expire = expire
         self.check = check
 
-    def mkDataFrameDict(self):
+    def mkDataFrameDict_POC(self):
         result = OrderedDict()
-        result['ocr_result'] = {"IDENTYPE": 'JUMIN', "NAME": self.name, "JUMIN": self.regnum, "ISSUE_DATE": self.issueDate,
-                            "ADDR1": '-', "ADDR2": '-', "SAVE_FILE_NAME": '-'}
+        result['ocr_result'] = {"IDENTYPE": 'JUMIN_TEMP', "NAME": self.name, "REGNUM": self.regnum, "ISSUE_DATE": self.issueDate,
+                            "EXPIRE": self.expire, "EXPATRIATE": self.expatriate}
+        if self.label:
+            result['demo_result'] = {"demo_result_1": self.label, "demo_result_2": self.probability}
         result['err_code'] = 10
         return result
 
@@ -118,13 +127,13 @@ class Driver(Id):
                        "DRIVER_TYPE": '-', "ADDR1": '-', "ADDR2": '-', "ADDR3": '-', "TEST_PERIOD": '-'})
         return pd.DataFrame(series)
 
-    def mkDataFrameDict(self):
+    def mkDataFrameDict_POC(self):
         result = OrderedDict()
-        result['ocr_result'] = {"IDENTYPE": 'DRIVER', "NAME": self.name, "JUMIN": self.regnum,
-                       "LOCAL": self.local, "DRIVER_NO": self.local + self.licensenum,
-                       "PRIVATE_CODE": self.encnum, "ISSUE_DATE": self.issueDate,
-                       "DRIVER_TYPE": '-', "ADDR1": '-', "ADDR2": '-', "ADDR3": '-',
-                       "TEST_PERIOD": '-', "SAVE_FILE_NAME": '-'}
+        result['ocr_result'] = {"IDENTYPE": 'DRIVER', "NAME": self.name, "REGNUM": self.regnum,
+                       "LICENSE_NUM": self.local + self.licensenum,
+                       "ENCNUM": self.encnum, "ISSUE_DATE": self.issueDate}
+        if self.label:
+            result['demo_result'] = {"demo_result_1": self.label, "demo_result_2": self.probability}
         result['err_code'] = 10
         return result
 
@@ -188,6 +197,16 @@ class Alien(Id):
         return pd.DataFrame({"FileName": [img], "NAME": [self.name], "REGNUM": [self.regnum], "ISSUEDATE": [self.issueDate],
                        "NATIONALITY": [self.nationality], "VISATYPE": [self.visatype], "SEX": [self.sex]})
 
+    def mkDataFrameDict_POC(self):
+        result = OrderedDict()
+        result['ocr_result'] = {"IDENTYPE": 'ALIEN', "NAME": self.name, "REGNUM": self.regnum,
+                       "ISSUE_DATE": self.issueDate, "NATIONALITY": self.nationality, "VISATYPE": self.visatype,
+                                "SEX": self.sex}
+        if self.label:
+            result['demo_result'] = {"demo_result_1": self.label, "demo_result_2": self.probability}
+        result['err_code'] = 10
+        return result
+
 
 class Passport:
     def __init__(self, passportType, issuingCounty, sur, given, passportNo, nationality, birth, sex, expiry, personalNo):
@@ -201,6 +220,8 @@ class Passport:
         self.sex = sex
         self.expiry = expiry
         self.personalNo = personalNo
+        self.probability = 0.0
+        self.label = ''
 
     def all(self):
         return (self.passportType, self.issuingCounty, self.sur, self.given, self.passportNo,
@@ -233,3 +254,18 @@ class Passport:
                              "passportNo": [self.passportNo],
                        "sur": [self.sur], "given": [self.given], "nationality": [self.nationality],
                        "birth": [self.birth], "sex": [self.sex], "expiry": [self.expiry]})
+
+    def mkDataFrameDict_POC(self):
+        result = OrderedDict()
+        result['ocr_result'] = {"IDENTYPE": 'PASSPORT', "PASSPORT_TYPE": self.passportType,
+                                "ISSUING_COUNTY": self.issuingCounty, "PASSPORT_NO": self.passportNo,
+                       "SUR": self.sur, "GIVEN": self.given, "NATIONALITY": self.nationality,
+                       "BIRTH": self.birth, "SEX": self.sex, "EXPIRE": self.expiry}
+        if self.label:
+            result['demo_result'] = {"demo_result_1": self.label, "demo_result_2": self.probability}
+        result['err_code'] = 10
+        return result
+
+    def set_auth(self, probability, label):
+        self.probability = probability
+        self.label = label

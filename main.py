@@ -4,8 +4,10 @@ import yaml
 import torch
 import argparse
 import pandas as pd
+from id_send import authenticity
 
 from code1ocr.code1ocr import Code1OCR
+from easys.easyocr import Reader
 
 from core.util import watchDir
 from core.id_card import *
@@ -14,7 +16,7 @@ from models.experimental import attempt_load
 
 
 def main(arg):
-    gpu, gray, ciou = arg.gpu, arg.gray, arg.ciou
+    gpu, gray, ciou, auth_on = arg.gpu, arg.gray, arg.ciou, arg.auth
     img_formats = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo', 'gif']
 
     # 디바이스 세팅
@@ -25,6 +27,7 @@ def main(arg):
     device = torch.device(dev)
 
     # config 로드
+
     with open('config.yaml', 'r') as f:
         config = yaml.safe_load(f)
     img_path, cls_weight, jumin_weight, driver_weight, passport_weight, welfare_weight, alien_weight, hangul_weight, encnum_weight = \
@@ -43,30 +46,11 @@ def main(arg):
     encnum_model = attempt_load(encnum_weight, map_location=device)
     models = (cls_model, jumin_model, driver_model, passport_model, welfare_model, alien_model, hangul_model, encnum_model)
 
-    code1ocr = Code1OCR()
+    code1ocr = Reader(['en'])
     print('----- 모델 로드 완료 -----')
-
-    # while True:
-    #     fileList = watchDir(img_path)
-    #     if fileList:
-    #         images = [x for x in fileList if x.split('.')[-1].lower() in img_formats]
-    #         for img in images:
-    #
-    #             # pytorch 검출
-    #             result = pt_detect(img, device, models)
-    #             print(img)
-    #             if result is None:
-    #                 print('검출 실패')
-    #             else:
-    #                 result.resultPrint()
-    #
-    #         images.clear()
-    #     else:
-    #         time.sleep(1)
 
     jumin_result_csv, driver_result_csv, welfare_result_csv, alien_result_csv, passport_result_csv = \
         pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
-
 
     ####### tests
     result_csv = pd.DataFrame()
@@ -82,6 +66,14 @@ def main(arg):
             if result is None:
                 print('검출 실패')
             else:
+                # 진위 여부
+                if auth_on:
+                    auth_result = authenticity('temp/auth_temp.jpg')
+                    if auth_result['success'] == 'true':
+                        probability = auth_result['prediction']['probability']
+                        label = auth_result['prediction']['label']
+                        result.set_auth(probability, label)
+
                 result.resultPrint()
 
             if type(result) is Jumin:
@@ -100,11 +92,13 @@ def main(arg):
                 df = result.mkDataFrame(img)
                 passport_result_csv = pd.concat([passport_result_csv, df])
 
-            ####### test$$$4
-            if len(result.name) > 3 and '성명' in result.name:
-                result.name = result.name.replace('성명', '')
-            if len(result.name) > 3:
-                result.name = result.name[0:3]
+            # ####### test$$$4
+            if type(result) is Jumin:
+                if len(result.name) > 3 and '성명' in result.name:
+                    result.name = result.name.replace('성명', '')
+                if len(result.name) > 3:
+                    result.name = result.name[0:3]
+
             if type(result) is Jumin:
                 df = pd.DataFrame({"jumin": [result.regnum], "name": [result.name],
                                    "license": ['-'], "encnum": ['-'], "issue": [result.issueDate]})
@@ -116,6 +110,7 @@ def main(arg):
                                    "license": [result.licensenum], "encnum": [result.encnum], "issue": [result.issueDate]})
                 result_csv = pd.concat([result_csv, df])
 
+
         images.clear()
 
     ###3 테스트 용
@@ -126,17 +121,18 @@ def main(arg):
     print(driver_result_csv)
     driver_result_csv.to_csv('csv/driver_result.csv', index=False, encoding='utf-8-sig')
     print(welfare_result_csv)
-    # welfare_result_csv.to_csv('csv/welfare_result.csv', index=False, encoding='utf-8-sig')
-    # print(alien_result_csv)
-    # alien_result_csv.to_csv('csv/alien_result.csv', index=False, encoding='utf-8-sig')
-    # print(passport_result_csv)
-    # passport_result_csv.to_csv('csv/passport_result.csv', index=False, encoding='utf-8-sig')
+    welfare_result_csv.to_csv('csv/welfare_result.csv', index=False, encoding='utf-8-sig')
+    print(alien_result_csv)
+    alien_result_csv.to_csv('csv/alien_result.csv', index=False, encoding='utf-8-sig')
+    print(passport_result_csv)
+    passport_result_csv.to_csv('csv/passport_result.csv', index=False, encoding='utf-8-sig')
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', type=int, default=-1)
-    parser.add_argument('--ciou', type=float, default=20)
+    parser.add_argument('--ciou', type=float, default=80)
     parser.add_argument('--gray', type=bool, default=False)
+    parser.add_argument('--auth', type=bool, default=False)
     opt = parser.parse_args()
     main(opt)
