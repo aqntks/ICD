@@ -93,9 +93,6 @@ def main(arg):
                 passport_result_csv = pd.concat([passport_result_csv, df])
 
             # ####### test$$$4
-            if type(result) is Jumin or type(result) is Driver:
-                if len(result.name) > 3 and '성명' in result.name:
-                    result.name = result.name.replace('성명', '')
             if type(result) is Jumin:
                 if len(result.name) > 3:
                     result.name = result.name[0:3]

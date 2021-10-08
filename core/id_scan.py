@@ -435,11 +435,15 @@ def passportScan(det, names):
     surName, givenNames = spiltName(firstLine[5:44])
     passportType = typeCorrection(mrzCorrection(firstLine[0:2].replace('<', ''), 'dg2en'))
     issuingCounty = nationCorrection(mrzCorrection(firstLine[2:5], 'dg2en'))
+    if issuingCounty == 'D<<':
+        issuingCounty = 'DEU'
     sur = mrzCorrection(surName.replace('<', ' ').strip(), 'dg2en')
     given = mrzCorrection(givenNames.replace('<', ' ').strip(), 'dg2en')
 
     passportNo = secondLine[0:9].replace('<', '')
     nationality = nationCorrection(mrzCorrection(secondLine[10:13], 'dg2en'))
+    if nationality == 'D<<':
+        nationality = 'DEU'
     birth = mrzCorrection(secondLine[13:19].replace('<', ''), 'en2dg')
     sex = sexCorrection(mrzCorrection(secondLine[20].replace('<', ''), 'dg2en'))
     expiry = mrzCorrection(secondLine[21:27].replace('<', ''), 'en2dg')
@@ -450,16 +454,17 @@ def passportScan(det, names):
 
 
 # 한글 검출
-def hangulScan(det, names, name_rect):
+def hangulScan(det, names, y):
     obj, name = [], ''
     for *rect, conf, cls in det:
-        if (rect[0][0][0] > name_rect[0][0][0]) and (rect[0][0][1] > name_rect[0][0][1]) and (
-                rect[0][0][2] < name_rect[0][0][2]) and (
-                rect[0][0][3] < name_rect[0][0][3]):
+        if rect[0][0][1] < y/2 < rect[0][0][3]:
             obj.append((rect, conf, names[int(cls)]))
             obj.sort(key=lambda x: x[0][0])
     for s, conf, cls in obj:
         name += cls
+
+    if len(name) > 3 and '성명' in name:
+        name = name.replace('성명', '')
 
     return name
 
@@ -629,7 +634,7 @@ def pt_detect(path, device, models, ciou, code1ocr, gray=False, byteMode=False, 
             cv2.imwrite(f'crop/name_{img_name}.jpg', im0s)
 
             det = detecting(model, img, im0s, device, img_size, half, hangul_option[1:], ciou)
-            name = hangulScan(det, names, result.nameRect)
+            name = hangulScan(det, names, im0s.shape[0])
             result.setName(name)
     print('이름검출', time.time() - h1)
 
