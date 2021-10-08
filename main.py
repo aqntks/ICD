@@ -93,9 +93,10 @@ def main(arg):
                 passport_result_csv = pd.concat([passport_result_csv, df])
 
             # ####### test$$$4
-            if type(result) is Jumin:
+            if type(result) is Jumin or type(result) is Driver:
                 if len(result.name) > 3 and '성명' in result.name:
                     result.name = result.name.replace('성명', '')
+            if type(result) is Jumin:
                 if len(result.name) > 3:
                     result.name = result.name[0:3]
 
@@ -109,7 +110,6 @@ def main(arg):
                 df = pd.DataFrame({"jumin": [result.regnum], "name": [result.name],
                                    "license": [result.licensenum], "encnum": [result.encnum], "issue": [result.issueDate]})
                 result_csv = pd.concat([result_csv, df])
-
 
         images.clear()
 
@@ -131,7 +131,7 @@ def main(arg):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', type=int, default=-1)
-    parser.add_argument('--ciou', type=float, default=80)
+    parser.add_argument('--ciou', type=float, default=25)
     parser.add_argument('--gray', type=bool, default=False)
     parser.add_argument('--auth', type=bool, default=False)
     opt = parser.parse_args()

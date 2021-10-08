@@ -110,10 +110,10 @@ def juminScan(det, names):
     # 상하좌우 10% 추가
     if regnumRect is not None:
         regnumRectY = regnumRect[0][0][3] - regnumRect[0][0][1]
-        regnumRect[0][0][0] = int(regnumRect[0][0][0] - regnumRectY * 0.1)
-        regnumRect[0][0][1] = int(regnumRect[0][0][1] - regnumRectY * 0.1)
-        regnumRect[0][0][2] = int(regnumRect[0][0][2] + regnumRectY * 0.1)
-        regnumRect[0][0][3] = int(regnumRect[0][0][3] + regnumRectY * 0.1)
+        regnumRect[0][0][0] = int(regnumRect[0][0][0] - regnumRectY * 0.3)
+        regnumRect[0][0][1] = int(regnumRect[0][0][1] - regnumRectY * 0.3)
+        regnumRect[0][0][2] = int(regnumRect[0][0][2] + regnumRectY * 0.3)
+        regnumRect[0][0][3] = int(regnumRect[0][0][3] + regnumRectY * 0.3)
         regnum = rect_in_value(det, regnumRect, names)
     if issueDateRect is not None:
         issueDateRectY = issueDateRect[0][0][3] - issueDateRect[0][0][1]
@@ -130,15 +130,15 @@ def juminScan(det, names):
         nameRect[0][0][2] = int(nameRect[0][0][2] + nameRectY * 0.1)
         nameRect[0][0][3] = int(nameRect[0][0][3] + nameRectY * 0.1)
         for *rect, conf, cls in det:
-            if rect[0][0][0] > nameRect[0][0][0] and rect[0][0][1] > nameRect[0][0][1] \
-                    and rect[0][0][2] < nameRect[0][0][2] and rect[0][0][3] < nameRect[0][0][3]:
+            if rect[0][0][0] > nameRect[0][0][0] and rect[0][0][1] > nameRect[0][0][1] - nameRectY * 0.3 \
+                    and rect[0][0][2] < nameRect[0][0][2] and rect[0][0][3] < nameRect[0][0][3] + nameRectY * 0.3:
                 if names[int(cls)] == '(':
                     if conf > bracket_conf:
                         bracket_conf = conf
                         bracketRect = rect
 
-    # if bracketRect:
-    #     nameRect[0][0][2] = bracketRect[0][0][0]
+    if bracketRect:
+        nameRect[0][0][2] = bracketRect[0][0][0]
 
     return Jumin(nameRect, regnum, issueDate, issueDateRect, expatriate)
 
@@ -450,11 +450,14 @@ def passportScan(det, names):
 
 
 # 한글 검출
-def hangulScan(det, names):
+def hangulScan(det, names, name_rect):
     obj, name = [], ''
     for *rect, conf, cls in det:
-        obj.append((rect, conf, names[int(cls)]))
-        obj.sort(key=lambda x: x[0][0])
+        if (rect[0][0][0] > name_rect[0][0][0]) and (rect[0][0][1] > name_rect[0][0][1]) and (
+                rect[0][0][2] < name_rect[0][0][2]) and (
+                rect[0][0][3] < name_rect[0][0][3]):
+            obj.append((rect, conf, names[int(cls)]))
+            obj.sort(key=lambda x: x[0][0])
     for s, conf, cls in obj:
         name += cls
 
@@ -519,19 +522,19 @@ def pt_detect(path, device, models, ciou, code1ocr, gray=False, byteMode=False, 
     model, stride, img_size, names = model_setting(id_cls_weights, half, id_cls_option[0])
     image_pack = ImagePack(path, img_size, stride, byteMode=byteMode, gray=gray, perspect=perspect)
     img, im0s = image_pack.getImg()
-    det = detecting(model, img, im0s, device, img_size, half, id_cls_option[1:])
+    det = detecting(model, img, im0s, device, img_size, half, id_cls_option[1:], ciou)
     cla, plateArea, idRect = id_classification(det, names)
     if cla is None:
         model, stride, img_size, names = model_setting(passport_weights, half, passport_option[0])
         image_pack.reset(img_size, stride)
         img, im0s = image_pack.getImg()
-        det = detecting(model, img, im0s, device, img_size, half, passport_option[1:])
+        det = detecting(model, img, im0s, device, img_size, half, passport_option[1:], ciou)
         cla, mrzRect = passport_classification(det, names)
     if cla is None:
         model, stride, img_size, names = model_setting(driver_weights, half, driver_option[0])
         image_pack.reset(img_size, stride)
         img, im0s = image_pack.getImg()
-        det = detecting(model, img, im0s, device, img_size, half, driver_option[1:])
+        det = detecting(model, img, im0s, device, img_size, half, driver_option[1:], ciou)
         regnumB, nameB, issueB = False, False, False
         for *rect, conf, cls in det:
             if (names[int(cls)] == 'encnum' or names[int(cls)] == 'period') and conf > 0.9:
@@ -571,37 +574,37 @@ def pt_detect(path, device, models, ciou, code1ocr, gray=False, byteMode=False, 
         model, stride, img_size, names = model_setting(jumin_weights, half, jumin_option[0])
         image_pack.reset(img_size, stride)
         img, im0s = image_pack.getImg()
-        det = detecting(model, img, im0s, device, img_size, half, jumin_option[1:])
+        det = detecting(model, img, im0s, device, img_size, half, jumin_option[1:], ciou)
         result = juminScan(det, names)
     elif cla == 't_jumin':
         model, stride, img_size, names = model_setting(jumin_weights, half, jumin_option[0])
         image_pack.reset(img_size, stride)
         img, im0s = image_pack.getImg()
-        det = detecting(model, img, im0s, device, img_size, half, jumin_option[1:])
+        det = detecting(model, img, im0s, device, img_size, half, jumin_option[1:], ciou)
         result = temp_juminScan(det, names)
     elif cla == 'driver':
         model, stride, img_size, names = model_setting(driver_weights, half, driver_option[0])
         image_pack.reset(img_size, stride)
         img, im0s = image_pack.getImg()
-        det = detecting(model, img, im0s, device, img_size, half, driver_option[1:])
+        det = detecting(model, img, im0s, device, img_size, half, driver_option[1:], ciou)
         result = driverScan(det, names)
     elif cla == 'welfare':
         model, stride, img_size, names = model_setting(welfare_weights, half, welfare_option[0])
         image_pack.reset(img_size, stride)
         img, im0s = image_pack.getImg()
-        det = detecting(model, img, im0s, device, img_size, half, welfare_option[1:])
+        det = detecting(model, img, im0s, device, img_size, half, welfare_option[1:], ciou)
         result = welfareScan(det, names)
     elif cla == 'alien':
         model, stride, img_size, names = model_setting(alien_weights, half, alien_option[0])
         image_pack.reset(img_size, stride)
         img, im0s = image_pack.getImg()
-        det = detecting(model, img, im0s, device, img_size, half, alien_option[1:])
+        det = detecting(model, img, im0s, device, img_size, half, alien_option[1:], ciou)
         result = alienScan(det, names)
     elif cla == 'passport':
         model, stride, img_size, names = model_setting(passport_weights, half, passport_option[0])
         image_pack.reset(img_size, stride)
         img, im0s = image_pack.passportCrop(mrzRect)
-        det = detecting(model, img, im0s, device, img_size, half, passport_option[1:])
+        det = detecting(model, img, im0s, device, img_size, half, passport_option[1:], ciou)
         result = passportScan(det, names)
     else:
         result = None
@@ -626,7 +629,7 @@ def pt_detect(path, device, models, ciou, code1ocr, gray=False, byteMode=False, 
             cv2.imwrite(f'crop/name_{img_name}.jpg', im0s)
 
             det = detecting(model, img, im0s, device, img_size, half, hangul_option[1:], ciou)
-            name = hangulScan(det, names)
+            name = hangulScan(det, names, result.nameRect)
             result.setName(name)
     print('이름검출', time.time() - h1)
 
