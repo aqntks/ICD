@@ -283,3 +283,10 @@ def xyxy2xxyy(rect, intMode=False):
         return [int(x1), int(x2), int(y1), int(y2)]
     else:
         return [x1, x2, y1, y2]
+
+
+def remove_background(image):
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    result = cv2.threshold(image, 128, 255, cv2.THRESH_BINARY_INV)[1]
+
+    return result

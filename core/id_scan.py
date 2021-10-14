@@ -372,8 +372,15 @@ def alienScan(det, names):
     if nameRect is not None:
         name = rect_in_value(det, nameRect, names)
     if regnumRect is not None:
+        regnumRectX = regnumRect[0][0][2] - regnumRect[0][0][0]
+        regnumRectY = regnumRect[0][0][3] - regnumRect[0][0][1]
+        regnumRect[0][0][0] = int(regnumRect[0][0][0] + regnumRectX * 0.26)
+        regnumRect[0][0][1] = int(regnumRect[0][0][1] - regnumRectY * 0.1)
+        regnumRect[0][0][3] = int(regnumRect[0][0][3] - regnumRectY * 0.1)
         regnum = rect_in_value(det, regnumRect, names)
     if issueDateRect is not None:
+        issueDateRectX = issueDateRect[0][0][2] - issueDateRect[0][0][0]
+        issueDateRect[0][0][0] = int(issueDateRect[0][0][0] + issueDateRectX * 0.34)
         issueDate = rect_in_value(det, issueDateRect, names)
     if nationalityRect is not None:
         nationality = rect_in_value(det, nationalityRect, names)
@@ -382,7 +389,7 @@ def alienScan(det, names):
     if sexRect is not None:
         sex = rect_in_value(det, sexRect, names)
 
-    return Alien(name, regnum, issueDate, nationality, visaType, sex)
+    return Alien(name, regnum, issueDate, nationality, visaType, sex, issueDateRect, regnumRect)
 
 
 # 여권 검출
@@ -496,7 +503,23 @@ def code1_issue(value):
     return results
 
 
-def pt_detect(path, device, models, ciou, code1ocr, gray=False, byteMode=False, perspect=False):
+def code1_regnum(value):
+    results = value[0][1].replace(' ', '').replace('.', '').replace('--', '-').replace('---', '-')
+
+    split = results.split('-')
+
+    if len(split) == 2:
+        if len(split[0]) > 6:
+            split[0] = split[0][len(split[0]) - 6:len(split[0])]
+        if len(split[1]) > 7:
+            split[1] = split[1][len(split[1]) - 7:len(split[1])]
+
+        results = f'{split[0]}-{split[1]}'
+
+    return results
+
+
+def pt_detect(path, device, models, ciou, code1ocr_dg, code1ocr_en, gray=False, byteMode=False, perspect=False):
     id_cls_weights, jumin_weights, driver_weights, passport_weights, welfare_weights, alien_weights, hangul_weights, encnum_weights = models
 
     half = device.type != 'cpu'
@@ -669,7 +692,7 @@ def pt_detect(path, device, models, ciou, code1ocr, gray=False, byteMode=False, 
     print('암호검출', time.time() - enc1)
 
     # code1ocr - issue date--------------------------------------------------------------------------------------
-    if (cla == 'driver') or (cla == 'jumin'):
+    if (cla == 'driver') or (cla == 'jumin') or (cla == 'alien'):
         if result.issueDateRect is None:
             return result
 
@@ -678,13 +701,32 @@ def pt_detect(path, device, models, ciou, code1ocr, gray=False, byteMode=False, 
         issue_crop_img = crop(result.issueDateRect[0][0], image_pack.getOImg())
         easyList.append([0, int(issue_crop_img.shape[1]), 0, int(issue_crop_img.shape[0])])
 
-        results = code1ocr.recogss(issue_crop_img, easyList)
+        results = code1ocr_dg.recogss(issue_crop_img, easyList)
         issue_value = code1_issue(results)
 
         result.issueDate = issue_value
 
         img_name = path.split('/')[-1].split('.')[0]
         cv2.imwrite(f'crop/issue_{img_name}.jpg', issue_crop_img)
+
+        # code1ocr - regnum --------------------------------------------------------------------------------------
+        if cla == 'alien':
+            if result.regnumRect is None:
+                return result
+
+            easyList = []
+
+            regnum_crop_img = crop(result.regnumRect[0][0], image_pack.getOImg())
+            # regnum_crop_img = remove_background(regnum_crop_img)
+            easyList.append([0, int(regnum_crop_img.shape[1]), 0, int(regnum_crop_img.shape[0])])
+
+            results = code1ocr_dg.recogss(regnum_crop_img, easyList)
+            regnum_value = code1_regnum(results)
+
+            result.regnum = regnum_value
+
+            img_name = path.split('/')[-1].split('.')[0]
+            cv2.imwrite(f'crop/regnum_{img_name}.jpg', regnum_crop_img)
 
     return result
 
