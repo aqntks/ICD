@@ -222,6 +222,15 @@ def temp_juminScan(det, names):
         nameRect[0][0][2] = int(nameRect[0][0][2] + nameRectY * 0.1)
         nameRect[0][0][3] = int(nameRect[0][0][3] + nameRectY * 0.1)
 
+    if len(issue1) == 8:
+        issue1 = issue1[0:4] + '.' + issue1[4:6] + '.' + issue1[6:8]
+
+    if len(expire) == 8:
+        expire = expire[0:4] + '.' + expire[4:6] + '.' + expire[6:8]
+
+    if len(regnum) == 13:
+        regnum = regnum[0:6] + '-' + regnum[6:13]
+
     return JuminTemp(nameRect, regnum, issue1, issue1Rect, expire, check)
 
 
@@ -383,13 +392,17 @@ def alienScan(det, names):
         issueDateRect[0][0][0] = int(issueDateRect[0][0][0] + issueDateRectX * 0.34)
         issueDate = rect_in_value(det, issueDateRect, names)
     if nationalityRect is not None:
+        # nationalityRectX = nationalityRect[0][0][2] - nationalityRect[0][0][0]
+        # nationalityRect[0][0][0] = int(nationalityRect[0][0][0] + nationalityRectX * 0.30)
         nationality = rect_in_value(det, nationalityRect, names)
     if visaTypeRect is not None:
+        # visaTypeRectX = visaTypeRect[0][0][2] - visaTypeRect[0][0][0]
+        # visaTypeRect[0][0][0] = int(visaTypeRect[0][0][0] + visaTypeRectX * 0.34)
         visaType = rect_in_value(det, visaTypeRect, names)
     if sexRect is not None:
         sex = rect_in_value(det, sexRect, names)
 
-    return Alien(name, regnum, issueDate, nationality, visaType, sex, issueDateRect, regnumRect)
+    return Alien(name, regnum, issueDate, nationality, visaType, sex, issueDateRect, regnumRect, nationalityRect, visaTypeRect)
 
 
 # 여권 검출
@@ -461,7 +474,7 @@ def passportScan(det, names):
 
 
 # 한글 검출
-def hangulScan(det, names, y):
+def hangulScan(det, names, y, temp_jumin):
     obj, name = [], ''
     for *rect, conf, cls in det:
         if rect[0][0][1] < y/2 < rect[0][0][3]:
@@ -470,8 +483,12 @@ def hangulScan(det, names, y):
     for s, conf, cls in obj:
         name += cls
 
-    if len(name) > 3 and '성명' in name:
-        name = name.replace('성명', '')
+    if temp_jumin:
+        if len(name) > 3 and '한글' in name:
+            name = name.replace('한글', '')
+    else:
+        if len(name) > 3 and '성명' in name:
+            name = name.replace('성명', '')
 
     return name
 
@@ -519,7 +536,36 @@ def code1_regnum(value):
     return results
 
 
-def pt_detect(path, device, models, ciou, code1ocr_dg, code1ocr_en, gray=False, byteMode=False, perspect=False):
+def code1_nationality(value):
+    value = value[0][1]
+    results = ''
+    en_count = 0
+
+    for c in value:
+        if c in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
+                 'U', 'V', 'W', 'X', 'Y', 'Z']:
+            en_count += 1
+
+    if en_count == 0 or value[0:2] == '국적':
+        results = value[2:]
+    else:
+        for c in value:
+            if c in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']:
+                results += c
+
+    return results
+
+
+def code1_visatype(value):
+    results = value[0][1]
+
+    if len(results) > 4:
+        results = results[4:]
+
+    return results
+
+
+def pt_detect(path, device, models, ciou, code1ocr_dg, code1ocr_en_ko, gray=False, byteMode=False, perspect=False):
     id_cls_weights, jumin_weights, driver_weights, passport_weights, welfare_weights, alien_weights, hangul_weights, encnum_weights = models
 
     half = device.type != 'cpu'
@@ -641,6 +687,8 @@ def pt_detect(path, device, models, ciou, code1ocr_dg, code1ocr_en, gray=False, 
     # 이름 검출 ----------------------------------------------------------------------------------------------------
     h1 = time.time()
     if (cla == 'jumin' or cla == 'driver' or cla == 'welfare' or cla == 't_jumin') and result is not None:
+        temp_jumin = True if cla == 't_jumin' else False
+        
         if result.nameRect is None:
             result.setName('')
         else:
@@ -657,7 +705,7 @@ def pt_detect(path, device, models, ciou, code1ocr_dg, code1ocr_en, gray=False, 
             cv2.imwrite(f'crop/name_{img_name}.jpg', im0s)
 
             det = detecting(model, img, im0s, device, img_size, half, hangul_option[1:], ciou)
-            name = hangulScan(det, names, im0s.shape[0])
+            name = hangulScan(det, names, im0s.shape[0], temp_jumin)
             result.setName(name)
     print('이름검출', time.time() - h1)
 
@@ -709,24 +757,60 @@ def pt_detect(path, device, models, ciou, code1ocr_dg, code1ocr_en, gray=False, 
         img_name = path.split('/')[-1].split('.')[0]
         cv2.imwrite(f'crop/issue_{img_name}.jpg', issue_crop_img)
 
-        # code1ocr - regnum --------------------------------------------------------------------------------------
-        if cla == 'alien':
-            if result.regnumRect is None:
-                return result
+    # code1ocr - regnum --------------------------------------------------------------------------------------
+    if cla == 'alien':
+        if result.regnumRect is None:
+            return result
 
-            easyList = []
+        easyList = []
 
-            regnum_crop_img = crop(result.regnumRect[0][0], image_pack.getOImg())
-            # regnum_crop_img = remove_background(regnum_crop_img)
-            easyList.append([0, int(regnum_crop_img.shape[1]), 0, int(regnum_crop_img.shape[0])])
+        regnum_crop_img = crop(result.regnumRect[0][0], image_pack.getOImg())
+        # regnum_crop_img = remove_background(regnum_crop_img)
+        easyList.append([0, int(regnum_crop_img.shape[1]), 0, int(regnum_crop_img.shape[0])])
 
-            results = code1ocr_dg.recogss(regnum_crop_img, easyList)
-            regnum_value = code1_regnum(results)
+        results = code1ocr_dg.recogss(regnum_crop_img, easyList)
+        regnum_value = code1_regnum(results)
 
-            result.regnum = regnum_value
+        result.regnum = regnum_value
 
-            img_name = path.split('/')[-1].split('.')[0]
-            cv2.imwrite(f'crop/regnum_{img_name}.jpg', regnum_crop_img)
+        img_name = path.split('/')[-1].split('.')[0]
+        cv2.imwrite(f'crop/regnum_{img_name}.jpg', regnum_crop_img)
+
+    # code1ocr - nationality --------------------------------------------------------------------------------------
+    if cla == 'alien':
+        if result.nationalityRect is None:
+            return result
+
+        easyList = []
+
+        nationality_crop_img = crop(result.nationalityRect[0][0], image_pack.getOImg())
+        easyList.append([0, int(nationality_crop_img.shape[1]), 0, int(nationality_crop_img.shape[0])])
+
+        results = code1ocr_en_ko.recogss(nationality_crop_img, easyList)
+        nationality_value = code1_nationality(results)
+
+        result.nationality = nationality_value
+
+        img_name = path.split('/')[-1].split('.')[0]
+        cv2.imwrite(f'crop/nationality_{img_name}.jpg', nationality_crop_img)
+
+    # code1ocr - visatype --------------------------------------------------------------------------------------
+    if cla == 'alien':
+        if result.visatypeRect is None:
+            return result
+
+        easyList = []
+
+        visatype_crop_img = crop(result.visatypeRect[0][0], image_pack.getOImg())
+        easyList.append([0, int(visatype_crop_img.shape[1]), 0, int(visatype_crop_img.shape[0])])
+
+        results = code1ocr_en_ko.recogss(visatype_crop_img, easyList)
+        visatype_value = code1_visatype(results)
+
+        result.visatype = visatype_value
+
+        img_name = path.split('/')[-1].split('.')[0]
+        cv2.imwrite(f'crop/visatype_{img_name}.jpg', visatype_crop_img)
 
     return result
 

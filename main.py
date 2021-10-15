@@ -47,7 +47,8 @@ def main(arg):
     models = (cls_model, jumin_model, driver_model, passport_model, welfare_model, alien_model, hangul_model, encnum_model)
 
     code1ocr_dg = Reader(['en'], only_dg=True)
-    code1ocr_en = Reader(['en'], only_dg=False)
+    # code1ocr_en = Reader(['en'], only_dg=False)
+    code1ocr_en_ko = Reader(['en', 'ko'], only_dg=False)
     print('----- 모델 로드 완료 -----')
 
     jumin_result_csv, driver_result_csv, welfare_result_csv, alien_result_csv, passport_result_csv = \
@@ -62,7 +63,7 @@ def main(arg):
         for img in images:
 
             # pytorch 검출
-            result = pt_detect(img, device, models, ciou, code1ocr_dg, code1ocr_en, gray=gray, byteMode=False, perspect=False)
+            result = pt_detect(img, device, models, ciou, code1ocr_dg, code1ocr_en_ko, gray=gray, byteMode=False, perspect=False)
             print(img)
             if result is None:
                 print('검출 실패')

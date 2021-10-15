@@ -174,13 +174,15 @@ class Welfare(Id):
 
 
 class Alien(Id):
-    def __init__(self, name, regnum, issueDate, nationality, visatype, sex, issueDateRect, regnumRect):
+    def __init__(self, name, regnum, issueDate, nationality, visatype, sex, issueDateRect, regnumRect, nationalityRect, visaTypeRect):
         super().__init__(name, regnum, issueDate)
         self.nationality = nationality
         self.visatype = visatype
         self.sex = sex
         self.issueDateRect = issueDateRect
         self.regnumRect = regnumRect
+        self.nationalityRect = nationalityRect
+        self.visatypeRect = visaTypeRect
 
     def resultPrint(self):
         super().resultPrint()
