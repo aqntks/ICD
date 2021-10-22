@@ -1,3 +1,4 @@
+
 import io
 import cv2
 import pandas as pd
@@ -11,7 +12,7 @@ from collections import OrderedDict
 
 from core.id_scan import pt_detect
 from models.experimental import attempt_load
-from code1ocr.code1ocr import Code1OCR
+from easys.easyocr import Reader
 
 import pprint
 from PIL import Image
@@ -29,12 +30,12 @@ def predict():
         return
 
     if request.files.get("file_param_1"):
+
         image_file = request.files["file_param_1"]
-        # demo_result = request.files["demo_param_1"]
-        # face_file = request.files["file_param_face"]
+        auth = request.files["auth_on"]
 
         # ### 진위 여부 검출 여부 수신
-        auth_on = True
+        auth_on = True if auth.read() == b'1' else False
 
         image_bytes = image_file.read()
 
@@ -42,21 +43,24 @@ def predict():
 
         img.save("temp/auth_temp.jpg")
 
-        result = pt_detect(img, device, models, ciou, code1ocr, gray=gray, byteMode=True, perspect=False)
+        result = pt_detect(img, device, models, ciou, code1ocr_dg, code1ocr_en_ko, gray=gray, byteMode=True, perspect=False)
+
+        if auth_on:
+            auth_result = authenticity('temp/auth_temp.jpg')
 
         if result is None:
             result_json = pd.DataFrame().to_json(orient="columns")
             print('검출 실패', '\n---------------------------------------')
         else:
-            # 진위 여부
+            # df = result.mkDataFrame()
+            # df.columns = ['ocr_result']
+            # df['err_code'] = 10
+            # # print(df, '\n---------------------------------------')
+            # result_json = df.to_json(orient="columns")
+            result_dict = result.mkDataFrameDict_POC()
             if auth_on:
-                auth_result = authenticity('temp/auth_temp.jpg')
-                if auth_result['success'] == 'true':
-                    probability = auth_result['prediction']['probability']
-                    label = auth_result['prediction']['label']
-                    result.set_auth(probability, label)
-            
-            result_json = json.dumps(result.mkDataFrameDict_POC(), ensure_ascii=False)
+                result_dict['prediction'] = auth_result['prediction']
+            result_json = json.dumps(result_dict, ensure_ascii=False)
             pprint.pprint(result_json)
 
         return result_json
@@ -87,8 +91,7 @@ if __name__ == "__main__":
         config = yaml.safe_load(f)
     img_path, cls_weight, jumin_weight, driver_weight, passport_weight, welfare_weight, alien_weight, hangul_weight, encnum_weight = \
         config['images'], config['cls-weights'], config['jumin-weights'], config['driver-weights'], \
-        config['passport-weights'], config['welfare-weights'], config['alien-weights'], config['hangul-weights'], \
-        config['encnum-weights']
+        config['passport-weights'], config['welfare-weights'], config['alien-weights'], config['hangul-weights'], config['encnum-weights']
     f.close()
 
     # 모델 세팅
@@ -100,10 +103,11 @@ if __name__ == "__main__":
     alien_model = attempt_load(alien_weight, map_location=device)
     hangul_model = attempt_load(hangul_weight, map_location=device)
     encnum_model = attempt_load(encnum_weight, map_location=device)
-    models = (
-    cls_model, jumin_model, driver_model, passport_model, welfare_model, alien_model, hangul_model, encnum_model)
+    models = (cls_model, jumin_model, driver_model, passport_model, welfare_model, alien_model, hangul_model, encnum_model)
 
-    code1ocr = Code1OCR()
+    code1ocr_dg = Reader(['en'], only_dg=True)
+    # code1ocr_en = Reader(['en'], only_dg=False)
+    code1ocr_en_ko = Reader(['en', 'ko'], only_dg=False)
     print('----- 모델 로드 완료 -----')
 
     # app.run(host="0.0.0.0", port=args.port)

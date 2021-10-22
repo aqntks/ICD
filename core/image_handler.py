@@ -50,6 +50,7 @@ class ImagePack:
         img = np.ascontiguousarray(img)
         return img
 
+
     def reset(self, img_size, stride):
         self.img_size = img_size
         self.stride = stride
@@ -135,6 +136,7 @@ class ImagePack:
         return self.t_img, self.n_img
 
     def makeSquareWithGray(self):
+
         w = self.n_img.shape[1]
         h = self.n_img.shape[0]
 

@@ -68,7 +68,7 @@ class JuminTemp(Id):
     def mkDataFrameDict_POC(self):
         result = OrderedDict()
         result['ocr_result'] = {"IDENTYPE": 'JUMIN_TEMP', "NAME": self.name, "REGNUM": self.regnum, "ISSUE_DATE": self.issueDate,
-                            "EXPIRE": self.expire, "EXPATRIATE": self.expatriate}
+                            "EXPIRE": self.expire, "EXPATRIATE": self.check}
         if self.label:
             result['demo_result'] = {"demo_result_1": self.label, "demo_result_2": self.probability}
         result['err_code'] = 10
