@@ -1,0 +1,43 @@
+
+images: C:\Users\home\Desktop\id_test
+#images: C:\Users\home\Desktop\temp
+
+cls-weights: weights/classification/id_cls_0924_s3_266.pt
+cls-img_size: 640
+cls-confidence: 0.25
+cls-iou: 0.45
+
+jumin-weights: weights/id/id_0924_m2_160.pt
+jumin-img_size: 640
+jumin-confidence: 0.25
+jumin-iou: 0.45
+
+driver-weights: weights/id/id_0924_m2_160.pt
+driver-img_size: 640
+driver-confidence: 0.25
+driver-iou: 0.45
+
+passport-weights: weights/passport/passport_m_v1.pt
+passport-img_size: 640
+passport-confidence: 0.25
+passport-iou: 0.45
+
+welfare-weights: weights/welfare/welfare_s_v1.pt
+welfare-img_size: 640
+welfare-confidence: 0.25
+welfare-iou: 0.45
+
+alien-weights: weights/alien/alien_m2.pt
+alien-img_size: 640
+alien-confidence: 0.25
+alien-iou: 0.45
+
+hangul-weights: weights/hangul/hangul_last3_temp2.pt
+hangul-img_size: 640
+hangul-confidence: 0.5
+hangul-iou: 0.45
+
+encnum-weights: weights/encnum/encnum_s_temp2.pt
+encnum-img_size: 640
+encnum-confidence: 0.25
+encnum-iou: 0.45
