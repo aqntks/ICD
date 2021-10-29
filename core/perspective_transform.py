@@ -598,11 +598,11 @@ def perspective_transform(image):
     if 'screenCnt' in locals():
         pass
     else:
-        return orig
+        return orig, False
 
     imageSize = edged.shape[0] * edged.shape[1]
     if cv2.contourArea(screenCnt) / imageSize < 0.1:
-        return orig
+        return orig, False
 
     cv2.drawContours(image, [screenCnt], -1, (0, 0, 255), 2)
 
@@ -624,7 +624,7 @@ def perspective_transform(image):
 
     warped = cv2.warpPerspective(orig, M, (int(maxWidth), int(maxHeight)))
 
-    return warped
+    return warped, rect
 
 
 if __name__ == "__main__":
