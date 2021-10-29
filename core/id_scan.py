@@ -650,6 +650,8 @@ def pt_detect(path, device, models, ciou, code1ocr_dg, code1ocr_en_ko, gray=Fals
                 pMaxY = point[1]
 
         pointCropImage = crop((pMinX, pMinY, pMaxX, pMaxY), im0s)
+        cv2.imshow("pointCropImage", pointCropImage)
+        cv2.waitKey(0)
 
     if perspect_on:
         image_pack.o_img = perspect_img
