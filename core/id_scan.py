@@ -637,7 +637,7 @@ def pt_detect(path, device, models, ciou, code1ocr_dg, code1ocr_en_ko, gray=Fals
     perspect_img, point_rect = perspective_transform(im0s)
     print('perspective', time.time() - p1)
 
-    if point_rect:
+    if point_rect is not False:
         pMinX, pMinY, pMaxX, pMaxY = im0s.shape[1], im0s.shape[0], 0, 0
         for point in point_rect:
             if pMinX > point[0]:

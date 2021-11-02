@@ -28,6 +28,7 @@ class Id:
         self.probability = probability
         self.label = label
 
+
 class Jumin(Id):
     def __init__(self, nameRect, regnum, issueDate, issueDateRect, expatriate):
         super().__init__(nameRect, regnum, issueDate)
