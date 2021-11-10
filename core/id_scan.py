@@ -140,7 +140,7 @@ def juminScan(det, names):
     if bracketRect:
         nameRect[0][0][2] = bracketRect[0][0][0]
 
-    return Jumin(nameRect, regnum, issueDate, issueDateRect, expatriate)
+    return Jumin(nameRect, regnum, issueDate, issueDateRect, expatriate, regnumRect)
 
 
 # 임시 주민등록증 검출
@@ -231,7 +231,7 @@ def temp_juminScan(det, names):
     if len(regnum) == 13:
         regnum = regnum[0:6] + '-' + regnum[6:13]
 
-    return JuminTemp(nameRect, regnum, issue1, issue1Rect, expire, check)
+    return JuminTemp(nameRect, regnum, issue1, issue1Rect, expire, check, regnumRect)
 
 
 # 운전면허증 검출
@@ -303,7 +303,7 @@ def driverScan(det, names):
         nameRect[0][0][2] = int(nameRect[0][0][2] + nameRectY * 0.1)
         nameRect[0][0][3] = int(nameRect[0][0][3] + nameRectY * 0.1)
 
-    return Driver(nameRect, regnum, issueDate, local, licensenum, encnum, encnumRect, issueDateRect)
+    return Driver(nameRect, regnum, issueDate, local, licensenum, encnum, encnumRect, issueDateRect, regnumRect)
 
 
 # 복지카드 검출

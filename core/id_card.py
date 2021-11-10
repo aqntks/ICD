@@ -30,10 +30,11 @@ class Id:
 
 
 class Jumin(Id):
-    def __init__(self, nameRect, regnum, issueDate, issueDateRect, expatriate):
+    def __init__(self, nameRect, regnum, issueDate, issueDateRect, expatriate, regnumRect):
         super().__init__(nameRect, regnum, issueDate)
         self.issueDateRect = issueDateRect
         self.expatriate = expatriate
+        self.regnumRect = regnumRect
 
     def mkDataFrameJson(self):
         series = pd.Series({"IDENTYPE": 'JUMIN', "NAME": self.name, "JUMIN": self.regnum, "ISSUE_DATE": self.issueDate,
@@ -46,6 +47,11 @@ class Jumin(Id):
                            "EXPATRIATE": self.expatriate}
         if self.label:
             result['demo_result'] = {"demo_result_1": self.label, "demo_result_2": self.probability}
+
+        result['masking'] = {"x": self.regnumRect[0][0][0], "y": self.regnumRect[0][0][1],
+                             "width": self.regnumRect[0][0][2] - self.regnumRect[0][0][0],
+                             "height": self.regnumRect[0][0][3] - self.regnumRect[0][0][1]}
+
         result['err_code'] = 10
         return result
 
@@ -60,11 +66,12 @@ class Jumin(Id):
 
 
 class JuminTemp(Id):
-    def __init__(self, nameRect, regnum, issue1, issue1Rect, expire, check):
+    def __init__(self, nameRect, regnum, issue1, issue1Rect, expire, check, regnumRect):
         super().__init__(nameRect, regnum, issue1)
         self.issueDateRect = issue1Rect
         self.expire = expire
         self.check = check
+        self.regnumRect = regnumRect
 
     def mkDataFrameDict_POC(self):
         result = OrderedDict()
@@ -72,6 +79,11 @@ class JuminTemp(Id):
                             "EXPIRE": self.expire, "EXPATRIATE": self.check}
         if self.label:
             result['demo_result'] = {"demo_result_1": self.label, "demo_result_2": self.probability}
+
+        result['masking'] = {"x": self.regnumRect[0][0][0], "y": self.regnumRect[0][0][1],
+                             "width": self.regnumRect[0][0][2] - self.regnumRect[0][0][0],
+                             "height": self.regnumRect[0][0][3] - self.regnumRect[0][0][1]}
+
         result['err_code'] = 10
         return result
 
@@ -86,13 +98,14 @@ class JuminTemp(Id):
 
 
 class Driver(Id):
-    def __init__(self, nameRect, regnum, issueDate, local, licensenum, encnum, encnumRect, issueDateRect):
+    def __init__(self, nameRect, regnum, issueDate, local, licensenum, encnum, encnumRect, issueDateRect, regnumRect):
         super().__init__(nameRect, regnum, issueDate)
         self.local = self.localRename(local)
         self.licensenum = licensenum
         self.encnum = encnum
         self.encnumRect = encnumRect
         self.issueDateRect = issueDateRect
+        self.regnumRect = regnumRect
 
     def resultPrint(self):
         super().resultPrint()
@@ -135,6 +148,9 @@ class Driver(Id):
                        "ENCNUM": self.encnum, "ISSUE_DATE": self.issueDate}
         if self.label:
             result['demo_result'] = {"demo_result_1": self.label, "demo_result_2": self.probability}
+
+        result['masking'] = {"x": self.regnumRect[0][0][0], "y": self.regnumRect[0][0][1], "width": self.regnumRect[0][0][2] - self.regnumRect[0][0][0], "height": self.regnumRect[0][0][3] - self.regnumRect[0][0][1]}
+
         result['err_code'] = 10
         return result
 

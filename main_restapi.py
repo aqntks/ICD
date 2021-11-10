@@ -32,10 +32,11 @@ def predict():
     if request.files.get("file_param_1"):
 
         image_file = request.files["file_param_1"]
-        auth = request.files["auth_on"]
 
         # ### 진위 여부 검출 여부 수신
-        auth_on = True if auth.read() == b'1' else False
+        # auth = request.files["auth_on"]
+        # auth_on = True if auth.read() == b'1' else False
+        auth_on = False
 
         image_bytes = image_file.read()
 
