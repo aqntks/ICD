@@ -51,6 +51,7 @@ def predict():
 
         if result is None:
             result_json = pd.DataFrame().to_json(orient="columns")
+            result_json['err_code'] = 99
             print('검출 실패', '\n---------------------------------------')
         else:
             # df = result.mkDataFrame()

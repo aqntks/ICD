@@ -632,31 +632,31 @@ def pt_detect(path, device, models, ciou, code1ocr_dg, code1ocr_en_ko, gray=Fals
     #     _, im0s = image_pack.setCrop(plateArea)
 
     # perspective transform ---------------------------------------------------------------------------------------
-    perspect_on = False
-    p1 = time.time()
-    perspect_img, point_rect = perspective_transform(im0s)
-    print('perspective', time.time() - p1)
-
-    if point_rect is not False:
-        pMinX, pMinY, pMaxX, pMaxY = im0s.shape[1], im0s.shape[0], 0, 0
-        for point in point_rect:
-            if pMinX > point[0]:
-                pMinX = point[0]
-            if pMaxX < point[0]:
-                pMaxX = point[0]
-            if pMinY > point[1]:
-                pMinY = point[1]
-            if pMaxY < point[1]:
-                pMaxY = point[1]
-
-        pointCropImage = crop((pMinX, pMinY, pMaxX, pMaxY), im0s)
-        cv2.imshow("pointCropImage", pointCropImage)
-        cv2.waitKey(0)
-
-    if perspect_on:
-        image_pack.o_img = perspect_img
-        image_pack.setImg(perspect_img)
-        _, im0s = image_pack.getImg()
+    # perspect_on = False
+    # p1 = time.time()
+    # perspect_img, point_rect = perspective_transform(im0s)
+    # print('perspective', time.time() - p1)
+    #
+    # if point_rect is not False:
+    #     pMinX, pMinY, pMaxX, pMaxY = im0s.shape[1], im0s.shape[0], 0, 0
+    #     for point in point_rect:
+    #         if pMinX > point[0]:
+    #             pMinX = point[0]
+    #         if pMaxX < point[0]:
+    #             pMaxX = point[0]
+    #         if pMinY > point[1]:
+    #             pMinY = point[1]
+    #         if pMaxY < point[1]:
+    #             pMaxY = point[1]
+    #
+    #     pointCropImage = crop((pMinX, pMinY, pMaxX, pMaxY), im0s)
+    #     cv2.imshow("pointCropImage", pointCropImage)
+    #     cv2.waitKey(0)
+    #
+    # if perspect_on:
+    #     image_pack.o_img = perspect_img
+    #     image_pack.setImg(perspect_img)
+    #     _, im0s = image_pack.getImg()
     # img_name = path.split('/')[-1].split('.')[0]
     # cv2.imwrite(f'data/{img_name}.jpg', im0s)
 
