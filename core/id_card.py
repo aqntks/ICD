@@ -48,9 +48,12 @@ class Jumin(Id):
         if self.label:
             result['demo_result'] = {"demo_result_1": self.label, "demo_result_2": self.probability}
 
-        result['masking'] = {"x": self.regnumRect[0][0][0], "y": self.regnumRect[0][0][1],
-                             "width": self.regnumRect[0][0][2] - self.regnumRect[0][0][0],
-                             "height": self.regnumRect[0][0][3] - self.regnumRect[0][0][1]}
+        if self.regnumRect is None:
+            result['masking'] = {"x": 0, "y": 0, "width": 1, "height": 1}
+        else:
+            result['masking'] = {"x": self.regnumRect[0][0][0], "y": self.regnumRect[0][0][1],
+                                 "width": self.regnumRect[0][0][2] - self.regnumRect[0][0][0],
+                                 "height": self.regnumRect[0][0][3] - self.regnumRect[0][0][1]}
 
         result['err_code'] = 10
         return result
@@ -80,7 +83,10 @@ class JuminTemp(Id):
         if self.label:
             result['demo_result'] = {"demo_result_1": self.label, "demo_result_2": self.probability}
 
-        result['masking'] = {"x": self.regnumRect[0][0][0], "y": self.regnumRect[0][0][1],
+        if self.regnumRect is None:
+            result['masking'] = {"x": 0, "y": 0, "width": 1, "height": 1}
+        else:
+            result['masking'] = {"x": self.regnumRect[0][0][0], "y": self.regnumRect[0][0][1],
                              "width": self.regnumRect[0][0][2] - self.regnumRect[0][0][0],
                              "height": self.regnumRect[0][0][3] - self.regnumRect[0][0][1]}
 
@@ -149,7 +155,10 @@ class Driver(Id):
         if self.label:
             result['demo_result'] = {"demo_result_1": self.label, "demo_result_2": self.probability}
 
-        result['masking'] = {"x": self.regnumRect[0][0][0], "y": self.regnumRect[0][0][1], "width": self.regnumRect[0][0][2] - self.regnumRect[0][0][0], "height": self.regnumRect[0][0][3] - self.regnumRect[0][0][1]}
+        if self.regnumRect is None:
+            result['masking'] = {"x": 0, "y": 0, "width": 1, "height": 1}
+        else:
+            result['masking'] = {"x": self.regnumRect[0][0][0], "y": self.regnumRect[0][0][1], "width": self.regnumRect[0][0][2] - self.regnumRect[0][0][0], "height": self.regnumRect[0][0][3] - self.regnumRect[0][0][1]}
 
         result['err_code'] = 10
         return result

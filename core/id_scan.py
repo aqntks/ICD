@@ -599,20 +599,19 @@ def pt_detect(path, device, models, ciou, code1ocr_dg, code1ocr_en_ko, gray=Fals
     det = detecting(model, img, im0s, device, img_size, half, id_cls_option[1:], ciou)
     cla, plateArea, idRect = id_classification(det, names)
     if cla is None:
-        model, stride, img_size, names = model_setting(passport_weights, half, passport_option[0])
-        image_pack.reset(img_size, stride)
-        img, im0s = image_pack.getImg()
-        det = detecting(model, img, im0s, device, img_size, half, passport_option[1:], ciou)
-        cla, mrzRect = passport_classification(det, names)
-    if cla is None:
         model, stride, img_size, names = model_setting(driver_weights, half, driver_option[0])
         image_pack.reset(img_size, stride)
         img, im0s = image_pack.getImg()
         det = detecting(model, img, im0s, device, img_size, half, driver_option[1:], ciou)
         regnumB, nameB, issueB = False, False, False
+        jumin_cls_count = 0
         for *rect, conf, cls in det:
+            if (names[int(cls)] == 'encnum' or names[int(cls)] == 'period'): print(conf)
             if (names[int(cls)] == 'encnum' or names[int(cls)] == 'period') and conf > 0.9:
                 cla = 'driver'
+                break
+            if (names[int(cls)] == 'check_yes' or names[int(cls)] == 'check_mid') and conf > 0.9:
+                cla = 't_jumin'
                 break
             if names[int(cls)] == 'regnum':
                 regnumB = True
@@ -620,10 +619,21 @@ def pt_detect(path, device, models, ciou, code1ocr_dg, code1ocr_en_ko, gray=Fals
                 nameB = True
             if names[int(cls)] == 'issuedate':
                 issueB = True
-        if regnumB and nameB and issueB:
+        if regnumB: jumin_cls_count += 1
+        if nameB: jumin_cls_count += 1
+        if issueB: jumin_cls_count += 1
+        print(regnumB, nameB, issueB)
+        if cla is None and jumin_cls_count >= 2:
             cla = 'jumin'
+    if cla is None:
+        model, stride, img_size, names = model_setting(passport_weights, half, passport_option[0])
+        image_pack.reset(img_size, stride)
+        img, im0s = image_pack.getImg()
+        det = detecting(model, img, im0s, device, img_size, half, passport_option[1:], ciou)
+        cla, mrzRect = passport_classification(det, names)
 
     if cla is None:
+        print('분류 실패')
         return None
     print('분류', time.time() - c1)
 
@@ -699,6 +709,7 @@ def pt_detect(path, device, models, ciou, code1ocr_dg, code1ocr_en_ko, gray=Fals
         det = detecting(model, img, im0s, device, img_size, half, passport_option[1:], ciou)
         result = passportScan(det, names)
     else:
+        print('detecting 실패')
         result = None
     print('신분증', time.time() - i1)
 
@@ -713,14 +724,15 @@ def pt_detect(path, device, models, ciou, code1ocr_dg, code1ocr_en_ko, gray=Fals
             model, stride, img_size, names = model_setting(hangul_weights, half, hangul_option[0])
             image_pack.reset(img_size, stride)
 
-            _, im0s = image_pack.setSizeCrop(result.nameRect, 480)
-            _, _ = image_pack.resize_ratio(im0s, 640)
+            _, im0s = image_pack.setSizeCrop(result.nameRect, 320)
+            # _, _ = image_pack.resize_ratio(im0s, 640)
             # _, im0s = image_pack.setCrop(result.nameRect)
             image_pack.setGray()
             img, im0s = image_pack.getImg()
 
-            img_name = path.split('/')[-1].split('.')[0]
-            cv2.imwrite(f'crop/name_{img_name}.jpg', im0s)
+            # img_name = path.split('/')[-1].split('.')[0]
+            # cv2.imwrite(f'crop/name_{img_name}.jpg', im0s)
+            cv2.imwrite(f'crop/test.jpg', im0s)
 
             det = detecting(model, img, im0s, device, img_size, half, hangul_option[1:], ciou)
             name = hangulScan(det, names, im0s.shape[0], temp_jumin)
@@ -747,8 +759,8 @@ def pt_detect(path, device, models, ciou, code1ocr_dg, code1ocr_en_ko, gray=Fals
             image_pack.setGray()
             img, im0s = image_pack.getImg()
 
-            img_name = path.split('/')[-1].split('.')[0]
-            cv2.imwrite(f'crop/enc_{img_name}.jpg', im0s)
+            # img_name = path.split('/')[-1].split('.')[0]
+            # cv2.imwrite(f'crop/enc_{img_name}.jpg', im0s)
             # cv2.imshow('46436', im0s)
             # cv2.waitKey(0)
 
@@ -772,8 +784,8 @@ def pt_detect(path, device, models, ciou, code1ocr_dg, code1ocr_en_ko, gray=Fals
 
         result.issueDate = issue_value
 
-        img_name = path.split('/')[-1].split('.')[0]
-        cv2.imwrite(f'crop/issue_{img_name}.jpg', issue_crop_img)
+        # img_name = path.split('/')[-1].split('.')[0]
+        # cv2.imwrite(f'crop/issue_{img_name}.jpg', issue_crop_img)
 
     # code1ocr - regnum --------------------------------------------------------------------------------------
     if cla == 'alien':
@@ -791,8 +803,8 @@ def pt_detect(path, device, models, ciou, code1ocr_dg, code1ocr_en_ko, gray=Fals
 
         result.regnum = regnum_value
 
-        img_name = path.split('/')[-1].split('.')[0]
-        cv2.imwrite(f'crop/regnum_{img_name}.jpg', regnum_crop_img)
+        # img_name = path.split('/')[-1].split('.')[0]
+        # cv2.imwrite(f'crop/regnum_{img_name}.jpg', regnum_crop_img)
 
     # code1ocr - nationality --------------------------------------------------------------------------------------
     if cla == 'alien':
@@ -809,8 +821,8 @@ def pt_detect(path, device, models, ciou, code1ocr_dg, code1ocr_en_ko, gray=Fals
 
         result.nationality = nationality_value
 
-        img_name = path.split('/')[-1].split('.')[0]
-        cv2.imwrite(f'crop/nationality_{img_name}.jpg', nationality_crop_img)
+        # img_name = path.split('/')[-1].split('.')[0]
+        # cv2.imwrite(f'crop/nationality_{img_name}.jpg', nationality_crop_img)
 
     # code1ocr - visatype --------------------------------------------------------------------------------------
     if cla == 'alien':
@@ -827,8 +839,8 @@ def pt_detect(path, device, models, ciou, code1ocr_dg, code1ocr_en_ko, gray=Fals
 
         result.visatype = visatype_value
 
-        img_name = path.split('/')[-1].split('.')[0]
-        cv2.imwrite(f'crop/visatype_{img_name}.jpg', visatype_crop_img)
+        # img_name = path.split('/')[-1].split('.')[0]
+        # cv2.imwrite(f'crop/visatype_{img_name}.jpg', visatype_crop_img)
 
     return result
 

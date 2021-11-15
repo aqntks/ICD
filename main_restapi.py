@@ -50,8 +50,10 @@ def predict():
             auth_result = authenticity('temp/auth_temp.jpg')
 
         if result is None:
-            result_json = pd.DataFrame().to_json(orient="columns")
-            result_json['err_code'] = 99
+            result_dict = OrderedDict()
+            result_dict['err_code'] = 99
+            result_json = json.dumps(result_dict, ensure_ascii=False)
+            # result_json = pd.DataFrame().to_json(orient="columns")
             print('검출 실패', '\n---------------------------------------')
         else:
             # df = result.mkDataFrame()
@@ -71,7 +73,7 @@ def predict():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", default=5000, type=int, help="port number")
-    parser.add_argument('--gpu', type=int, default=1)
+    parser.add_argument('--gpu', type=int, default=-1)
     parser.add_argument('--ciou', type=float, default=20)
     parser.add_argument('--gray', type=bool, default=False)
     args = parser.parse_args()
@@ -112,5 +114,5 @@ if __name__ == "__main__":
     code1ocr_en_ko = Reader(['en', 'ko'], only_dg=False)
     print('----- 모델 로드 완료 -----')
 
-    # app.run(host="0.0.0.0", port=args.port)
-    serve(app, host='0.0.0.0', port=args.port)
+    app.run(host="0.0.0.0", port=args.port)
+    # serve(app, host='0.0.0.0', port=args.port)

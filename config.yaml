@@ -9,12 +9,12 @@ cls-iou: 0.45
 
 jumin-weights: weights/id/id_0924_m2_160.pt
 jumin-img_size: 640
-jumin-confidence: 0.25
+jumin-confidence: 0.20
 jumin-iou: 0.45
 
 driver-weights: weights/id/id_0924_m2_160.pt
 driver-img_size: 640
-driver-confidence: 0.25
+driver-confidence: 0.20
 driver-iou: 0.45
 
 passport-weights: weights/passport/passport_m_v1.pt
@@ -32,9 +32,9 @@ alien-img_size: 640
 alien-confidence: 0.25
 alien-iou: 0.45
 
-hangul-weights: weights/hangul/hangul_last3_temp2.pt
-hangul-img_size: 640
-hangul-confidence: 0.5
+hangul-weights: weights/hangul/hangul_591s7.pt
+hangul-img_size: 320
+hangul-confidence: 0.01
 hangul-iou: 0.45
 
 encnum-weights: weights/encnum/encnum_s_temp2.pt
