@@ -724,9 +724,10 @@ def pt_detect(path, device, models, ciou, code1ocr_dg, code1ocr_en_ko, gray=Fals
             model, stride, img_size, names = model_setting(hangul_weights, half, hangul_option[0])
             image_pack.reset(img_size, stride)
 
-            _, im0s = image_pack.setSizeCrop(result.nameRect, 320)
-            # _, _ = image_pack.resize_ratio(im0s, 640)
-            # _, im0s = image_pack.setCrop(result.nameRect)
+            # _, im0s = image_pack.setSizeCrop(result.nameRect, 320)
+
+            _, im0s = image_pack.setCrop(result.nameRect)
+            _, _ = image_pack.resize_ratio(im0s, 320)
             image_pack.setGray()
             img, im0s = image_pack.getImg()
 
